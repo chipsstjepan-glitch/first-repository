@@ -2,46 +2,65 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>2D Minecraft</title>
+<title>Nature Craft 2D</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body { background: #000; overflow: hidden; font-family: 'Courier New', monospace; color: #fff; }
   h1 { display: none; }
-  #ui { position: fixed; bottom: 12px; left: 50%; transform: translateX(-50%); display: flex; gap: 8px; align-items: center; z-index: 10; }
+
+  /* ── Responsive CSS variables (updated by JS on resize) ── */
+  :root {
+    --slot: 52px;
+    --slot-icon: 44px;
+    --slot-font: 22px;
+    --slot-num: 10px;
+    --joy-size: 120px;
+    --joy-knob: 52px;
+    --joy-bottom: 80px;
+    --joy-emoji: 28px;
+    --ui-bottom: 12px;
+    --bag-slot: 52px;
+    --bag-icon: 40px;
+    --craft-slot: 40px;
+    --craft-icon: 32px;
+  }
+
+  #ui { position: fixed; bottom: var(--ui-bottom); left: 50%; transform: translateX(-50%); display: flex; gap: 8px; align-items: center; z-index: 10; }
   #layerBtn { padding: 6px 12px; background: rgba(0,0,0,0.7); border: 2px solid #555; color: #fff; cursor: pointer; font-family: monospace; font-size: 13px; border-radius: 4px; }
   #layerBtn.bg { border-color: #c8a060; color: #c8a060; }
   #fsBtn { padding: 6px 10px; background: rgba(0,0,0,0.7); border: 2px solid #555; color: #fff; cursor: pointer; font-size: 16px; border-radius: 4px; line-height: 1; }
   #hotbar { display: flex; gap: 4px; }
-  .slot { width: 52px; height: 52px; border: 3px solid #606060; background: #494949; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 22px; position: relative; overflow: hidden; }
+  .slot { width: var(--slot); height: var(--slot); border: 3px solid #606060; background: #494949; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: var(--slot-font); position: relative; overflow: hidden; }
   .slot.drag-over { border-color: #4af !important; background: rgba(64,170,255,0.25) !important; }
-  .slot span.num { font-size: 10px; position: absolute; bottom: 1px; right: 3px; color: #fff; text-shadow: 1px 1px #000; }
-  .slot canvas { width: 44px; height: 44px; image-rendering: pixelated; }
-  #canvas { position: fixed; top: 0; left: 0; display: block; image-rendering: pixelated; cursor: crosshair; }
+  .slot span.num { font-size: var(--slot-num); position: absolute; bottom: 1px; right: 3px; color: #fff; text-shadow: 1px 1px #000; }
+  .slot canvas { width: var(--slot-icon); height: var(--slot-icon); image-rendering: pixelated; }
+  #canvas { position: fixed; top: 0; left: 0; display: none; image-rendering: pixelated; cursor: crosshair; }
   #info { display: none; }
   #coords { position: fixed; top: 8px; left: 10px; font-size: 12px; color: #7ec8e3; z-index: 10; text-shadow: 1px 1px #000; }
-  .joystick-zone { position: fixed; bottom: 80px; width: 120px; height: 120px; z-index: 20; border-radius: 50%; background: rgba(255,255,255,0.08); border: 2px solid rgba(255,255,255,0.18); touch-action: none; }
+  .joystick-zone { position: fixed; bottom: var(--joy-bottom); width: var(--joy-size); height: var(--joy-size); z-index: 20; border-radius: 50%; background: rgba(255,255,255,0.08); border: 2px solid rgba(255,255,255,0.18); touch-action: none; }
   #joystick-left { left: 20px; }
   #joystick-right { right: 20px; background: rgba(255,60,60,0.15); border: 2px solid rgba(255,120,120,0.5); }
-  .joystick-knob { position: absolute; width: 52px; height: 52px; border-radius: 50%; background: rgba(255,255,255,0.28); border: 2px solid rgba(255,255,255,0.5); top: 50%; left: 50%; transform: translate(-50%,-50%); pointer-events: none; transition: background 0.1s; }
+  .joystick-knob { position: absolute; width: var(--joy-knob); height: var(--joy-knob); border-radius: 50%; background: rgba(255,255,255,0.28); border: 2px solid rgba(255,255,255,0.5); top: 50%; left: 50%; transform: translate(-50%,-50%); pointer-events: none; transition: background 0.1s; }
   #joystick-right .joystick-knob { background: rgba(255,80,80,0.6); border-color: rgba(255,160,160,0.9); box-shadow: 0 0 8px rgba(255,80,80,0.5); }
-  #joystick-right::after { content: '⛏'; position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); font-size: 28px; pointer-events: none; opacity: 0.5; }
+  #joystick-right::after { content: '⛏'; position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); font-size: var(--joy-emoji); pointer-events: none; opacity: 0.5; }
   #bagBtn { padding: 6px 10px; background: rgba(0,0,0,0.7); border: 2px solid #555; color: #fff; cursor: pointer; font-size: 18px; border-radius: 4px; line-height: 1; position: relative; }
   #bagBtn.has-items { border-color: #c8a060; color: #c8a060; }
   #bagCount { position: absolute; top: -4px; right: -4px; background: #e04040; color: #fff; font-size: 9px; font-family: monospace; border-radius: 8px; padding: 1px 4px; display: none; min-width: 14px; text-align: center; }
   #bagPanel { display: none; position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%); background: #707070; border: 3px solid #707070; padding: 12px; z-index: 50; image-rendering: pixelated; }
   #bagPanel.show { display: flex; flex-direction: column; gap: 8px; align-items: stretch; }
   #bagPanel h3 { font-size: 11px; color: #1a1a1a; margin-bottom: 8px; text-align: left; letter-spacing: 0; font-weight: bold; text-shadow: 1px 1px #fff8; }
-  #bagGrid { display: grid; grid-template-columns: repeat(6, 52px); gap: 3px; }
-  .bagSlot { width: 52px; height: 52px; background: #494949; border: 3px solid #606060; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 20px; position: relative; }
+  #bagGrid { display: grid; grid-template-columns: repeat(6, var(--bag-slot)); gap: 3px; }
+  .bagSlot { width: var(--bag-slot); height: var(--bag-slot); background: #494949; border: 3px solid #606060; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 20px; position: relative; }
   .bagSlot.bagActive { border-color: #aaa; }
-  .bagSlot canvas { width: 40px; height: 40px; image-rendering: pixelated; }
+  .bagSlot.dragging-source, .craftSlot.dragging-source { visibility: hidden; }
+  .bagSlot canvas { width: var(--bag-icon); height: var(--bag-icon); image-rendering: pixelated; }
   .bagSlot .bagQty { position: absolute; bottom: 2px; right: 3px; font-size: 11px; color: #fff; text-shadow: 1px 1px #000, 2px 2px #000; font-family: monospace; font-weight: bold; pointer-events: none; }
   #bagEmpty { color: #555; font-size: 12px; text-align: center; padding: 8px; }
   #craftPanel { min-width: 160px; }
   #craftPanel h3 { font-size: 11px; color: #1a1a1a; margin-bottom: 8px; font-weight: bold; text-shadow: 1px 1px #fff8; }
   .craftRecipe { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
-  .craftSlot { width: 40px; height: 40px; background: #494949; border: 3px solid #606060; display: flex; align-items: center; justify-content: center; position: relative; flex-shrink: 0; }
-  .craftSlot canvas { width: 32px; height: 32px; image-rendering: pixelated; }
+  .craftSlot { width: var(--craft-slot); height: var(--craft-slot); background: #494949; border: 3px solid #606060; display: flex; align-items: center; justify-content: center; position: relative; flex-shrink: 0; }
+  .craftSlot canvas { width: var(--craft-icon); height: var(--craft-icon); image-rendering: pixelated; }
   .craftSlot .craftQty { position: absolute; bottom: 1px; right: 2px; font-size: 9px; color: #fff; text-shadow: 1px 1px #000; font-family: monospace; font-weight: bold; pointer-events: none; }
   .craftArrow { font-size: 14px; color: #1a1a1a; flex-shrink: 0; }
   .craftBtn { background: #8b8b8b; border: 3px solid; border-color: #fff #373737 #373737 #fff; color: #1a1a1a; font-family: monospace; font-size: 11px; font-weight: bold; cursor: pointer; padding: 3px 8px; white-space: nowrap; }
@@ -65,10 +84,104 @@
   .pxColor.pxActive { border-color:#fff; transform:scale(1.2); }
   .pxDeleteBtn { display:none; position:absolute; top:-1px; right:-1px; width:12px; height:12px; background:#cc2222; color:#fff; font-size:9px; line-height:12px; text-align:center; border-radius:50%; cursor:pointer; z-index:5; font-family:monospace; pointer-events:all; }
   .pxColor:hover .pxDeleteBtn, .pxColor.pxActive .pxDeleteBtn { display:block; }
+
+  /* ===== Title Screen ===== */
+  @keyframes titleGlow {
+    0%, 100% { text-shadow: 0 0 18px rgba(142,255,142,0.55), 2px 2px #000; }
+    50%      { text-shadow: 0 0 30px rgba(142,255,142,0.9), 2px 2px #000; }
+  }
+  @keyframes titleFadeUp {
+    from { opacity: 0; transform: translateY(14px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  #titleScreen {
+    position: fixed; inset: 0; z-index: 1000;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Courier New', monospace;
+  }
+  #titleBgCanvas {
+    position: absolute; inset: 0; width: 100%; height: 100%;
+    image-rendering: pixelated; z-index: 0;
+  }
+  #titleBgOverlay {
+    position: absolute; inset: 0;
+    background: linear-gradient(180deg, rgba(0,0,0,0.38) 0%, rgba(0,0,0,0.55) 100%);
+    z-index: 1;
+  }
+  #titleScreen.hidden { display: none; }
+  #titleBox {
+    position: relative; z-index: 2;
+    background: rgba(15,22,15,0.88);
+    border: 3px solid #4a8a4a; border-radius: 12px;
+    padding: 32px 36px; width: 340px; max-width: 90vw;
+    box-shadow: 0 0 50px rgba(0,0,0,0.7), inset 0 0 40px rgba(74,138,74,0.08);
+    text-align: center;
+    animation: titleFadeUp 0.5s ease-out;
+  }
+  #titleEmoji { font-size: 38px; margin-bottom: 6px; display: block; }
+  #titleBox h1 {
+    display: block; font-size: 26px; color: #9dff9d;
+    animation: titleGlow 3s ease-in-out infinite;
+    margin-bottom: 6px; letter-spacing: 1.5px;
+  }
+  #titleSubtitle {
+    color: #9bbf9b; font-size: 11px; margin-bottom: 22px;
+    letter-spacing: 2px; text-transform: uppercase; opacity: 0.8;
+  }
+  .titleField { margin-bottom: 16px; text-align: left; }
+  .titleField label {
+    display:block; font-size: 11px; color: #8fb88f; margin-bottom: 5px;
+    letter-spacing: 0.5px;
+  }
+  .titleField input {
+    width: 100%; padding: 10px 12px; background: rgba(0,0,0,0.35);
+    border: 2px solid #3d5a3d; border-radius: 6px;
+    color: #e8ffe8; font-family: monospace; font-size: 13px;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  .titleField input:focus {
+    outline: none; border-color: #7ec8e3;
+    box-shadow: 0 0 10px rgba(126,200,227,0.3);
+  }
+  .titleField input::placeholder { color: #5a7a5a; }
+  #playBtn {
+    width: 100%; padding: 13px; margin-top: 4px; border: 2px solid #5cb85c;
+    background: linear-gradient(180deg, #3a7a3a 0%, #2a5a2a 100%);
+    color: #e8ffe8; font-family: monospace; font-size: 16px;
+    font-weight: bold; border-radius: 6px; cursor: pointer; letter-spacing: 1.5px;
+    box-shadow: 0 3px 0 #1d3d1d, 0 4px 10px rgba(0,0,0,0.4);
+    transition: transform 0.08s, box-shadow 0.08s;
+  }
+  #playBtn:hover { background: linear-gradient(180deg, #4a8a4a 0%, #356a35 100%); }
+  #playBtn:active { transform: translateY(3px); box-shadow: 0 0 0 #1d3d1d, 0 1px 4px rgba(0,0,0,0.4); }
+  #discordLink {
+    display: flex; align-items: center; justify-content: center; gap: 7px;
+    margin-top: 18px; padding: 10px; border: 2px solid #5865F2; border-radius: 6px;
+    background: rgba(88,101,242,0.12); color: #c2c8ff; font-family: monospace;
+    font-size: 12px; text-decoration: none; font-weight: bold;
+    transition: background 0.15s;
+
+  }
+  #discordLink:hover { background: rgba(88,101,242,0.3); }
 </style>
 </head>
 <body>
-<h1>⛏ 2D MINECRAFT</h1>
+<div id="titleScreen">
+  <canvas id="titleBgCanvas"></canvas>
+  <div id="titleBgOverlay"></div>
+  <div id="titleBox">
+    <span id="titleEmoji">🌿</span>
+    <h1>NATURE CRAFT 2D</h1>
+    <div id="titleSubtitle">Build · Mine · Explore</div>
+    <div class="titleField">
+      <label>Your name</label>
+      <input type="text" id="playerNameInput" maxlength="16" placeholder="Steve">
+    </div>
+    <button id="playBtn" onclick="startGameFromTitle()">▶ Play</button>
+    <a id="discordLink" href="https://discord.gg/6rAw8Mby" target="_blank" rel="noopener noreferrer">💬 Join our Discord</a>
+  </div>
+</div>
+<h1>⛏ Nature Craft 2D</h1>
 <div id="coords">X: 0 Y: 0</div>
 <button id="settingsBtn" onclick="toggleSettings()" title="Block Settings" style="position:fixed;top:8px;right:10px;z-index:20;">⚙️</button>
 <div id="ui">
@@ -85,11 +198,11 @@
   </div>
   <div style="display:flex;flex-direction:row;gap:14px;align-items:flex-start;">
   <div id="craftPanel">
-    <h3 id="craftPanelTitle" style="margin-bottom:6px;">⚒ IZRADA</h3>
+    <h3 id="craftPanelTitle" style="margin-bottom:6px;">⚒ CRAFTING</h3>
     <div id="craftWorkbench"></div>
   </div>
   <div>
-    <h3>🎒 TORBA</h3>
+    <h3>🎒 BAG</h3>
     <div id="bagGrid"></div>
   </div>
   </div>
@@ -321,12 +434,20 @@ let craftPreviewBlock = null; // block shown in indicator from craft result
 const bagSlots = new Array(36).fill(null); // fixed bag grid positions
 
 function syncBagSlots() {
+  // Sigurnosna deduplikacija: ako je isti blockType ikad završio u dva slota
+  // (npr. zbog buga u drag&drop), ostavi samo prvi pojavak — drugi isprazni.
+  const seen = new Set();
+  for (let i = 0; i < 36; i++) {
+    if (bagSlots[i] !== null) {
+      if (seen.has(bagSlots[i])) { bagSlots[i] = null; continue; }
+      seen.add(bagSlots[i]);
+    }
+  }
   // Fill bagSlots from inventory for items not in hotbar (keeps existing positions)
   // First, remove slots whose inventory is now 0
   for (let i = 0; i < 36; i++) {
     if (bagSlots[i] !== null) {
       const total = inventory[bagSlots[i]] || 0;
-      const inSlots = bagSlots.filter(s => s === bagSlots[i]).length;
       // Remove from slot if no inventory left
       if (total <= 0) bagSlots[i] = null;
     }
@@ -412,6 +533,11 @@ function updateBagUI() {
         e.dataTransfer.setData('blockType', String(bt));
         e.dataTransfer.setData('bagSlotIdx', String(i));
         e.dataTransfer.effectAllowed = 'move';
+        // Sakrij original na izvornom mjestu dok se povlači — vidi se samo ono što "lebdi" pod kursorom
+        setTimeout(() => slot.classList.add('dragging-source'), 0);
+      });
+      slot.addEventListener('dragend', () => {
+        slot.classList.remove('dragging-source');
       });
       slot.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -423,7 +549,6 @@ function updateBagUI() {
             bagSlots[i] = bagSelectedBlock;
           } else if (fromHotbarIdx !== -1) {
             hotbarItems[fromHotbarIdx] = bt;
-            if (!hotbarItems.includes(bt)) hotbarItems[fromHotbarIdx] = bt;
             bagSlots[i] = bagSelectedBlock;
             buildHotbar();
           }
@@ -432,18 +557,7 @@ function updateBagUI() {
         }
         updateBagUI();
       });
-      slot.addEventListener('dblclick', (e) => {
-        e.stopPropagation();
-        const emptyHb = hotbarItems.indexOf(undefined);
-        if (emptyHb !== -1) {
-          hotbarItems[emptyHb] = bt;
-          selectedBlock = bt;
-          bagSlots[i] = null;
-          bagSelectedBlock = null;
-          buildHotbar();
-          updateBagUI();
-        }
-      });} else {
+      } else {
       // Empty slot: click to place selected block here
       slot.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -517,6 +631,9 @@ function updateBagUI() {
       const fromCatalogBag = e.dataTransfer.getData('fromCatalog') === '1';
       if (fromCatalogBag) {
         inventory[draggedBlock] = (inventory[draggedBlock] || 0) + 64;
+        // Ukloni eventualni postojeći pojavak ovog bloka u torbi da ne nastane duplikat slota
+        const existingIdx = bagSlots.indexOf(draggedBlock);
+        if (existingIdx !== -1 && existingIdx !== i) bagSlots[existingIdx] = null;
         bagSlots[i] = draggedBlock;
         buildHotbar(); updateBagUI(); return;
       }
@@ -525,7 +642,9 @@ function updateBagUI() {
         // Swap bag slots
         const tmp = bagSlots[i]; bagSlots[i] = bagSlots[fromIdx]; bagSlots[fromIdx] = tmp;
       } else if (isNaN(fromIdx)) {
-        // Coming from hotbar drag
+        // Coming from hotbar drag — ukloni eventualni postojeći pojavak da ne nastane duplikat slota
+        const existingIdx = bagSlots.indexOf(draggedBlock);
+        if (existingIdx !== -1 && existingIdx !== i) bagSlots[existingIdx] = null;
         bagSlots[i] = draggedBlock;
       }
       updateBagUI();
@@ -1072,7 +1191,7 @@ function drawBlockToCanvas(octx, bt, ox, oy, size) {
 }
 window.drawBlockToCanvas = drawBlockToCanvas;
 let camX=0, camY=0;
-const player = { x:WORLD_W/2, y:0, vx:0, vy:0, w:0.8, h:1.8, onGround:false, squishFactor:1.0, walkPhase:0 };
+const player = { x:WORLD_W/2, y:0, vx:0, vy:0, w:0.8, h:1.8, onGround:false, squishFactor:1.0, walkPhase:0, walkSwing:0 };
 
 function noise(x) {
   return Math.sin(x*0.3)*0.5 + Math.sin(x*0.7)*0.3 + Math.sin(x*1.3)*0.2;
@@ -1596,8 +1715,23 @@ function drawPlayer() {
   // Flip cijelog tijela prema mišu (oko centra igrača)
   const headCX = headX + headS / 2;
   const headBottomY = py + headS;
-  const dxMouse = mouseX - headCX;
-  const dyMouse = mouseY - headBottomY;
+  // Smjer prema kojem gleda glava:
+  // 1) Ako se desni joystick koristi (udaranje/rudarenje) — glava gleda kamo ruka udara
+  // 2) Inače, ako se lijevi joystick koristi (kretanje) — glava gleda u točnom smjeru joysticka
+  // 3) Inače (WASD/tipke na desktopu, ili stoji) — glava prati miš
+  const _jrHead = window._joyRight;
+  const _jlHead = window._joyLeft;
+  let dxMouse, dyMouse;
+  if (_jrHead && (_jrHead.nx !== 0 || _jrHead.ny !== 0)) {
+    dxMouse = _jrHead.nx;
+    dyMouse = _jrHead.ny;
+  } else if (_jlHead && (_jlHead.dx !== 0 || _jlHead.dy !== 0)) {
+    dxMouse = _jlHead.dx;
+    dyMouse = _jlHead.dy;
+  } else {
+    dxMouse = mouseX - headCX;
+    dyMouse = mouseY - headBottomY;
+  }
   const headFlip = dxMouse < 0;
   if (headFlip) {
     ctx.save();
@@ -1605,8 +1739,18 @@ function drawPlayer() {
     ctx.scale(-1, 1);
   }
   // Animacija hoda — rotacija oko gornje sredine
-  const swingAngle = Math.sin(player.walkPhase) * 0.45;
+  const swingAngle = player.walkSwing * 0.45;
   const limbCX = slimX + slimW / 2;
+
+  // Svjetlost na poziciji igrača — koristi se za zatamnjenje po dijelovima tijela
+  const plx = Math.floor(player.x + player.w/2), ply = Math.floor(player.y + player.h - 0.1);
+  const playerLv = Math.min((light[plx] ? light[plx][ply] : 1.0) ?? 1.0, 1.0);
+  const lightShade = Math.pow(1 - playerLv, 1.5); // 0 = puno svjetlo, ~1 = potpuni mrak
+  // Dubinska tama (pećine/podzemlje) — isti princip, primijenjen po dijelovima, ne kao jedan okvir
+  const pSurfaceY = WORLD_H * 0.30;
+  const depthShade = Math.max(0, Math.min(0.92, (player.y - pSurfaceY) / (WORLD_H - pSurfaceY) * 2.2));
+  // Ukupno zatamnjenje (uzima veće od dvije komponente, ne zbraja preko 1)
+  const shadeAlpha = Math.max(lightShade, depthShade);
 
   // Helper: crta ud rotiran oko gornje sredine
   function drawLimb(image, fallbackColor, topY, h, angle, darkOverlay) {
@@ -1623,6 +1767,11 @@ function drawPlayer() {
       ctx.fillStyle = fallbackColor;
       ctx.fillRect(-slimW/2, 0, slimW, h);
     }
+    // Zatamnjenje od ambijentalne svjetlosti — primijenjeno samo na obliku ovog uda
+    if (shadeAlpha > 0.02) {
+      ctx.fillStyle = `rgba(0,0,0,${Math.min(shadeAlpha, 0.92).toFixed(2)})`;
+      ctx.fillRect(-slimW/2, 0, slimW, h);
+    }
     ctx.restore();
   }
 
@@ -1633,6 +1782,10 @@ function drawPlayer() {
     ctx.drawImage(bodyImage, slimX, py+headS, slimW, bodyH);
   } else {
     ctx.fillStyle='#3a7bd5'; ctx.fillRect(slimX, py+headS, slimW, bodyH);
+  }
+  if (shadeAlpha > 0.02) {
+    ctx.fillStyle = `rgba(0,0,0,${Math.min(shadeAlpha, 0.92).toFixed(2)})`;
+    ctx.fillRect(slimX, py+headS, slimW, bodyH);
   }
   // Prednja ruka
   drawLimb(armImage, '#3a7bd5', py+headS, bodyH, swingAngle, false);
@@ -1665,16 +1818,12 @@ function drawPlayer() {
     ctx.fillRect(-headS/2+Math.floor(headS*.2),-headS+Math.floor(headS*.25),Math.max(2,Math.floor(headS*.18)),Math.max(2,Math.floor(headS*.18)));
     ctx.fillRect(-headS/2+Math.floor(headS*.58),-headS+Math.floor(headS*.25),Math.max(2,Math.floor(headS*.18)),Math.max(2,Math.floor(headS*.18)));
   }
+  if (shadeAlpha > 0.02) {
+    ctx.fillStyle = `rgba(0,0,0,${Math.min(shadeAlpha, 0.92).toFixed(2)})`;
+    ctx.fillRect(-headS/2, -headS, headS, headS);
+  }
   ctx.imageSmoothingEnabled = false;
   ctx.restore();
-
-  // Depth darkness overlay na igraču
-  const pSurfaceY = WORLD_H * 0.30;
-  const playerDepthDark = Math.max(0, Math.min(0.92, (player.y - pSurfaceY) / (WORLD_H - pSurfaceY) * 2.2));
-  if (playerDepthDark > 0) {
-    ctx.fillStyle = `rgba(0,0,0,${playerDepthDark.toFixed(2)})`;
-    ctx.fillRect(px, py, pw, visualPh);
-  }
 
   // Draw held item in hand
   if (isTool(selectedBlock)) {
@@ -1788,7 +1937,13 @@ function render() {
     // Raycast je vec mode-aware, pa uvijek prikazuj cilj
     outlineBlock = joystickTargetBlock;
   } else if (hx>=0&&hx<WORLD_W&&hy>=0&&hy<WORLD_H&&inReach({x:hx,y:hy})) {
-    outlineBlock = {x:hx,y:hy};
+    if (bgMode) {
+      outlineBlock = {x:hx,y:hy};
+    } else {
+      // Prednji sloj: prikazuje se okvir oko NAJBLIŽEG solidnog bloka na liniji pogleda,
+      // isto kao što razbijanje cilja samo njega (ne bilo koji blok pod kursorom)
+      outlineBlock = firstSolidOnRay(hx, hy);
+    }
   }
 
   // Crta od igraca prema smjeru desnog joysticka — staje na prvom bloku aktivnog sloja
@@ -1895,6 +2050,17 @@ function isSolid(bx,by){
   const b=world[x]?world[x][y]:AIR;
   return b!==AIR&&b!==WATER&&b!==LAVA&&b!==CLOUD&&b!==TORCH;
 }
+// Provjera horizontalne kolizije po više točaka cijele visine igrača
+// (igrač je viši od jednog tile-a, pa provjera samo vrha i dna ostavlja "rupu" na sredini
+// kroz koju bi mogao proći blok koji strši, npr. iznad glave tijekom skoka)
+function xCollides(testX){
+  const steps = 4;
+  for (let i = 0; i <= steps; i++) {
+    const ty = player.y + (player.h - 0.02) * (i / steps);
+    if (isSolid(testX, ty)) return true;
+  }
+  return false;
+}
 function isInWater() {
   const cx = player.x + player.w / 2;
   const cy = player.y + player.h * 0.6;
@@ -1906,9 +2072,16 @@ function update(){
   if(keys['ArrowLeft']||keys['a']||keys['A']) player.vx=-0.12;
   else if(keys['ArrowRight']||keys['d']||keys['D']) player.vx=0.12;
   else player.vx=0;
-  // Animacija hoda
-  if (Math.abs(player.vx) > 0.01 && player.onGround) player.walkPhase += 0.22;
-  else player.walkPhase *= 0.8;
+  // Animacija hoda — radi i na tlu i u zraku (tijekom skoka), dok god se igrač pomiče lijevo/desno
+  const isWalking = Math.abs(player.vx) > 0.01;
+  if (isWalking) {
+    player.walkPhase += 0.22;
+    if (player.walkPhase > Math.PI * 2) player.walkPhase -= Math.PI * 2; // sprječava neograničen rast tijekom dugog hoda
+  }
+  // Faza se mijenja SAMO dok igrač hoda — kad stane, faza se zamrzne
+  // (umjesto da nastavi prolaziti kroz cikluse sinusa, što bi izgledalo kao brzo mlataranje nogu)
+  const targetSwing = isWalking ? Math.sin(player.walkPhase) : 0;
+  player.walkSwing += (targetSwing - player.walkSwing) * 0.25;
 
   const inWater = isInWater();
 
@@ -1933,9 +2106,12 @@ function update(){
   }
 
   player.x+=player.vx;
-  const yT=player.y,yB=player.y+player.h-0.01;
-  if(player.vx>0){const rx=player.x+player.w;if(isSolid(rx,yT)||isSolid(rx,yB)){player.x=Math.floor(rx)-player.w;player.vx=0;}}
-  else if(player.vx<0){if(isSolid(player.x,yT)||isSolid(player.x,yB)){player.x=Math.floor(player.x)+1;player.vx=0;}}
+  // Provjera kolizije po VIŠE točaka visine igrača — ne samo vrh i dno —
+  // jer blok koji strši samo na sredini (npr. iznad glave dok je u zraku tijekom skoka)
+  // ne bi bio detektiran sa samo dvije točke, pa bi igrač "propao" kroz njega vodoravno
+  // i onda bio naglo izbačen (teleportiran) Y-kolizijom u sljedećem frameu.
+  if(player.vx>0){const rx=player.x+player.w;if(xCollides(rx)){player.x=Math.floor(rx)-player.w;player.vx=0;}}
+  else if(player.vx<0){if(xCollides(player.x)){player.x=Math.floor(player.x)+1;player.vx=0;}}
 
   player.y+=player.vy; player.onGround=false;
   const xL=player.x+0.01,xR=player.x+player.w-0.01;
@@ -1945,10 +2121,13 @@ function update(){
   player.x=Math.max(0,Math.min(WORLD_W-player.w,player.x));
   if(player.y>WORLD_H){player.y=0;player.vy=0;}
 
-  // Detect ceiling touch — squish player visually
+  // Squish samo kad igrač STVARNO nema dovoljno prostora (zaglavljen između podloge i stropa),
+  // a NE kad samo ima blok iznad glave dok skače ili hoda kroz prostor visine >= njegove.
   const xL2=player.x+0.05, xR2=player.x+player.w-0.05;
-  const touchingCeiling = isSolid(xL2, player.y-0.05) || isSolid(xR2, player.y-0.05);
-  const targetSquish = touchingCeiling ? 0.5 : 1.0;
+  const headSolid = isSolid(xL2, player.y) || isSolid(xR2, player.y);
+  const feetSolid = isSolid(xL2, player.y+player.h) || isSolid(xR2, player.y+player.h);
+  const squeezed = headSolid && feetSolid; // blok iznad glave I blok odmah ispod nogu = nema mjesta da stane uspravno
+  const targetSquish = squeezed ? 0.5 : 1.0;
   player.squishFactor += (targetSquish - player.squishFactor) * 0.25;
 
   const vW=canvas.width/(TILE*getZoom()),vH=canvas.height/(TILE*getZoom());
@@ -1958,9 +2137,13 @@ function update(){
 
 // ── Input ─────────────────────────────────────────────────
 document.addEventListener('keydown',e=>{
+  if (!document.getElementById('titleScreen').classList.contains('hidden')) return;
   if(e.code==='KeyF'){ bgMode=!bgMode; return; }keys[e.key]=true;});
-document.addEventListener('keyup',  e=>{keys[e.key]=false;});
+document.addEventListener('keyup',  e=>{
+  if (!document.getElementById('titleScreen').classList.contains('hidden')) return;
+  keys[e.key]=false;});
 document.addEventListener('keydown',e=>{
+  if (!document.getElementById('titleScreen').classList.contains('hidden')) return;
   if(e.code==='KeyF'){ bgMode=!bgMode; return; }
   let n=parseInt(e.key);
   if(e.key==='0') n=10;
@@ -2064,6 +2247,12 @@ canvas.addEventListener('mousedown', e => {
     const p = getMouseBlock(e);
     if (!p || !inReach(p)) return;
     const isBg = bgMode;
+    // Za prednji sloj: blok mora biti NAJBLIŽI solidni blok na liniji pogleda od igrača,
+    // ne bilo koji blok pod kursorom (inače bi se moglo razbijati kroz zidove).
+    if (!isBg) {
+      const hit = firstSolidOnRay(p.x, p.y);
+      if (!hit || hit.x !== p.x || hit.y !== p.y) return;
+    }
     const blockType = isBg ? worldBg[p.x][p.y] : world[p.x][p.y];
     if (isBg && (world[p.x][p.y] !== AIR)) return; // fg postoji — ne briši bg
     if (blockType === AIR || blockType === BEDROCK) return;
@@ -2071,7 +2260,7 @@ canvas.addEventListener('mousedown', e => {
     if (hard === 0) {
       // Trenutno razbijanje
       if (isBg) { worldBg[p.x][p.y] = AIR; markLightDirty(); }
-      else { const hit=firstSolidOnRay(p.x,p.y); if(hit&&hit.x===p.x&&hit.y===p.y){world[p.x][p.y]=AIR;markLightDirty();} }
+      else { world[p.x][p.y]=AIR; markLightDirty(); }
       return;
     }
     breakTarget = {x: p.x, y: p.y, isBg};
@@ -2096,7 +2285,15 @@ canvas.addEventListener('mouseleave', () => {
     breakProgress = 0;
   }
 });
-function getZoom(){ return Math.min(canvas.width / (TILE * 16), canvas.height / (TILE * 10)); }
+function getZoom(){
+  // Leave bottom space for the hotbar UI (~80px scaled)
+  const minDim = Math.min(canvas.width, canvas.height);
+  const uiScale = Math.max(0.55, Math.min(1.2, minDim / 360));
+  const uiHeight = Math.round((80 + 52) * uiScale); // joystick bottom + slot height
+  const effectiveH = canvas.height - uiHeight;
+  // Show ~16 blocks wide, ~9 blocks tall (adjusts to screen)
+  return Math.min(canvas.width / (TILE * 16), effectiveH / (TILE * 9));
+}
 
 // ── Hotbar ────────────────────────────────────────────────
 function buildHotbar() {
@@ -2146,15 +2343,7 @@ function buildHotbar() {
         buildHotbar(); 
         updateBagUI(); 
       });
-      slot.addEventListener('dblclick', (e)=>{
-        e.stopPropagation();
-        const idx=hotbarItems.indexOf(b);
-        if(idx!==-1) hotbarItems[idx]=undefined;
-        if(selectedBlock===b) selectedBlock=hotbarItems.find(x=>x!==undefined)??AIR;
-        bagSelectedBlock = null;
-        buildHotbar(); updateBagUI();
-      });
-      slot.title=BLOCK_NAMES[b]+' | 2×click: return to bag';
+      slot.title=BLOCK_NAMES[b];
     }
     // Empty slot click: place selected block here (only triggers if slot is empty)
     if (b === undefined) slot.addEventListener('click', (e)=>{
@@ -2220,7 +2409,41 @@ function buildHotbar() {
 }
 
 // ── Boot ──────────────────────────────────────────────────
-function resize(){canvas.width=window.innerWidth;canvas.height=window.innerHeight;}
+function resize(){
+  canvas.width=window.innerWidth;
+  canvas.height=window.innerHeight;
+
+  // ── Responsive UI scaling ──
+  // Base design: 360px wide mobile. Scale everything proportionally.
+  const W = window.innerWidth;
+  const H = window.innerHeight;
+  // Use the smaller dimension to drive scale (for landscape/portrait both)
+  const minDim = Math.min(W, H);
+  // s: 1.0 at 360px, 0.65 at 280px, capped at 1.2 for large screens
+  const s = Math.max(0.55, Math.min(1.2, minDim / 360));
+
+  const slot    = Math.round(52 * s);
+  const icon    = Math.round(44 * s);
+  const joySize = Math.round(120 * s);
+  const joyKnob = Math.round(52 * s);
+  const joyBot  = Math.round(80 * s);
+  const uiBot   = Math.round(12 * s);
+
+  const r = document.documentElement;
+  r.style.setProperty('--slot',       slot + 'px');
+  r.style.setProperty('--slot-icon',  icon + 'px');
+  r.style.setProperty('--slot-font',  Math.round(22 * s) + 'px');
+  r.style.setProperty('--slot-num',   Math.round(10 * s) + 'px');
+  r.style.setProperty('--joy-size',   joySize + 'px');
+  r.style.setProperty('--joy-knob',   joyKnob + 'px');
+  r.style.setProperty('--joy-bottom', joyBot  + 'px');
+  r.style.setProperty('--joy-emoji',  Math.round(28 * s) + 'px');
+  r.style.setProperty('--ui-bottom',  uiBot   + 'px');
+  r.style.setProperty('--bag-slot',   slot + 'px');
+  r.style.setProperty('--bag-icon',   Math.round(40 * s) + 'px');
+  r.style.setProperty('--craft-slot', Math.round(40 * s) + 'px');
+  r.style.setProperty('--craft-icon', Math.round(32 * s) + 'px');
+}
 window.addEventListener('resize',resize);
 resize(); generateWorld(); buildHotbar();
 
@@ -2312,6 +2535,78 @@ function updateLava() {
   if (changed) markLightDirty();
 }
 
+let grassTick = 0;
+const GRASS_AIR_NEEDED = 10;      // koliko praznog prostora (blokova zraka) treba iznad zemlje da bi mogla postati trava
+const GRASS_MAX_DEPTH = 30;       // "nije duboko" — ne raste prepodzemno, samo blizu površine
+const GRASS_TRANSITION_MS = 15000; // 15 sekundi neprekidnog uvjeta da dođe do promjene
+const grassTimers = {}; // "x,y" -> { state: 'toGrass'|'toDirt', since: timestamp }
+
+function hasOpenSkyAbove(x, y) {
+  // Provjerava ima li GRASS_AIR_NEEDED uzastopnih praznih blokova (zrak/oblak) odmah iznad
+  for (let dy = 1; dy <= GRASS_AIR_NEEDED; dy++) {
+    const ny = y - dy;
+    if (ny < 0) return true; // vrh svijeta — slobodno nebo
+    const nb = world[x][ny];
+    if (nb !== AIR && nb !== CLOUD) return false;
+  }
+  return true;
+}
+
+function updateGrassGrowth() {
+  grassTick++;
+  if (grassTick % 15 !== 0) return; // provjera ~4x u sekundi (na 60fps), dovoljno za 15s tranziciju
+  const x0 = Math.max(1, Math.floor(camX) - 6);
+  const x1 = Math.min(WORLD_W - 1, Math.ceil(camX + canvas.width/(TILE*getZoom())) + 6);
+  const now = performance.now();
+  let changed = false;
+
+  // Čišćenje timera izvan vidljivog raspona (sprječava neograničen rast objekta tijekom dugog igranja)
+  for (const key in grassTimers) {
+    const kx = parseInt(key.split(',')[0], 10);
+    if (kx < x0 || kx >= x1) delete grassTimers[key];
+  }
+
+  for (let x = x0; x < x1; x++) {
+    for (let y = 1; y < WORLD_H - 1; y++) {
+      const b = world[x][y];
+      const key = x + ',' + y;
+
+      if (b === DIRT) {
+        const eligible = y <= GRASS_MAX_DEPTH && hasOpenSkyAbove(x, y);
+        if (eligible) {
+          const timer = grassTimers[key];
+          if (!timer || timer.state !== 'toGrass') {
+            grassTimers[key] = { state: 'toGrass', since: now };
+          } else if (now - timer.since >= GRASS_TRANSITION_MS) {
+            world[x][y] = GRASS;
+            delete grassTimers[key];
+            changed = true;
+          }
+        } else if (grassTimers[key]) {
+          delete grassTimers[key]; // uvjet prekinut — resetiraj timer
+        }
+      } else if (b === GRASS) {
+        const stillOpen = hasOpenSkyAbove(x, y);
+        if (!stillOpen) {
+          const timer = grassTimers[key];
+          if (!timer || timer.state !== 'toDirt') {
+            grassTimers[key] = { state: 'toDirt', since: now };
+          } else if (now - timer.since >= GRASS_TRANSITION_MS) {
+            world[x][y] = DIRT;
+            delete grassTimers[key];
+            changed = true;
+          }
+        } else if (grassTimers[key]) {
+          delete grassTimers[key]; // opet otkriveno nebo — resetiraj timer
+        }
+      } else if (grassTimers[key]) {
+        delete grassTimers[key]; // blok se promijenio (npr. razbijen) — očisti timer
+      }
+    }
+  }
+  if (changed) markLightDirty();
+}
+
 function toggleFullscreen() {
   if (!document.fullscreenElement) {
     document.documentElement.requestFullscreen().catch(()=>{});
@@ -2330,6 +2625,13 @@ function loop(){
       const curTy = Math.floor(camY + mouseY / (TILE * getZoom()));
       if (curTx !== bx || curTy !== by) {
         isMouseBreaking = false; breakTarget = null; breakProgress = 0;
+      } else if (!breakTarget.isBg) {
+        // I dok korisnik drži tipku, cilj mora ostati najbliži solidni blok na liniji pogleda
+        // (npr. ako se igrač pomakne pa drugi blok postane prvi na putu)
+        const hit = firstSolidOnRay(bx, by);
+        if (!hit || hit.x !== bx || hit.y !== by) {
+          isMouseBreaking = false; breakTarget = null; breakProgress = 0;
+        }
       }
     }
     if (breakTarget) {
@@ -2346,13 +2648,13 @@ function loop(){
       }
     }
   }
-  update(); updateWater(); updateLava(); render();
+  update(); updateWater(); updateLava(); updateGrassGrowth(); render();
   if(texReady&&!hotbarDone){hotbarDone=true;buildHotbar();}
   requestAnimationFrame(loop);
 }
 loop();
 
-document.addEventListener('keydown',e=>{ if(e.code==='KeyB') toggleBag(); });
+document.addEventListener('keydown',e=>{ if(e.code==='KeyB' && document.getElementById('titleScreen').classList.contains('hidden')) toggleBag(); });
 
 // ── Joystick implementation ───────────────────────────────
 (function() {
@@ -2799,7 +3101,7 @@ window.addEventListener("load", function() {
               const tx = tc.getContext('2d');
               tx.imageSmoothingEnabled = false;
               tx.drawImage(img, 0, 0, 16, 16);
-              customTextures[idN] = tx.getImageData(0, 0, 16, 16);
+              customTextures[idN] = tc; // canvas, ne ImageData — drawImage() zahtijeva sliku/canvas
             };
             img.src = saved;
           }
@@ -2975,8 +3277,9 @@ window.addEventListener("load", function() {
   let GRID = 16;
   let CELL = 16;
 
-  // Pohrana custom tekstura: {blockId: ImageData ili null}
-  const customTextures = {};
+  // Pohrana custom tekstura: koristi GLOBALNI customTextures objekt (deklariran na vrhu datoteke)
+  // — taj isti objekt drawBlock()/drawBlockBg() koriste za crtanje u igri, pa promjene boja
+  // u postavkama moraju pisati u njega, a ne u lokalnu kopiju.
 
   function toggleSettings() {
     const ov = document.getElementById('settingsOverlay');
@@ -3041,11 +3344,7 @@ window.addEventListener("load", function() {
     const ctx = canvas.getContext('2d');
     ctx.imageSmoothingEnabled = false;
     if (customTextures[blockId]) {
-      const tmp = document.createElement('canvas');
-      tmp.width = tmp.height = GRID;
-      const t = tmp.getContext('2d');
-      t.putImageData(customTextures[blockId], 0, 0);
-      ctx.drawImage(tmp, 0, 0, canvas.width, canvas.height);
+      ctx.drawImage(customTextures[blockId], 0, 0, canvas.width, canvas.height);
     } else {
       const s = canvas.width;
       if (typeof window.drawBlockToCanvas === 'function') {
@@ -3077,12 +3376,8 @@ window.addEventListener("load", function() {
   function loadBlockToEditor(blockId) {
     pxCtx.clearRect(0, 0, 256, 256);
     if (customTextures[blockId]) {
-      const tmp = document.createElement('canvas');
-      tmp.width = tmp.height = GRID;
-      const t = tmp.getContext('2d');
-      t.putImageData(customTextures[blockId], 0, 0);
       pxCtx.imageSmoothingEnabled = false;
-      pxCtx.drawImage(tmp, 0, 0, 256, 256);
+      pxCtx.drawImage(customTextures[blockId], 0, 0, 256, 256);
     } else {
       // Popuni pravom teksturom bloka kao polazišnom točkom
       pxCtx.imageSmoothingEnabled = false;
@@ -3312,21 +3607,18 @@ window.addEventListener("load", function() {
 
   window.pxApplyTexture = function() {
     if (!pxSelectedBlock) { alert('Select a block!'); return; }
-    // Spremi 16x16 ImageData iz canvasa
+    // Spremi 16x16 canvas (ne ImageData — drawImage() u igri zahtijeva sliku/canvas)
     const tmp = document.createElement('canvas');
     tmp.width = tmp.height = GRID;
     const t = tmp.getContext('2d');
     t.imageSmoothingEnabled = false;
     t.drawImage(pxCanvas, 0, 0, GRID, GRID);
-    customTextures[pxSelectedBlock] = t.getImageData(0, 0, GRID, GRID);
+    customTextures[pxSelectedBlock] = tmp;
     // Spremi za custom blokove
     if (customBlocksData[pxSelectedBlock]) {
-      // Pretvori ImageData u dataURL za localStorage
+      // Pretvori canvas u dataURL za localStorage
       try {
-        const s = document.createElement('canvas');
-        s.width = s.height = GRID;
-        s.getContext('2d').putImageData(customTextures[pxSelectedBlock], 0, 0);
-        customBlocksData[pxSelectedBlock].imageData = s.toDataURL();
+        customBlocksData[pxSelectedBlock].imageData = tmp.toDataURL();
         saveCustomBlocks();
       } catch(e) {}
     }
@@ -3471,13 +3763,10 @@ window.addEventListener("load", function() {
     t.imageSmoothingEnabled = true;
     t.drawImage(img, sx, sy, side, side, 0, 0, GRID, GRID);
     t.imageSmoothingEnabled = false;
-    customTextures[pxSelectedBlock] = t.getImageData(0, 0, GRID, GRID);
+    customTextures[pxSelectedBlock] = tmp; // canvas, ne ImageData — drawImage() zahtijeva sliku/canvas
     if (customBlocksData[pxSelectedBlock]) {
       try {
-        const s = document.createElement('canvas');
-        s.width = s.height = GRID;
-        s.getContext('2d').putImageData(customTextures[pxSelectedBlock], 0, 0);
-        customBlocksData[pxSelectedBlock].imageData = s.toDataURL();
+        customBlocksData[pxSelectedBlock].imageData = tmp.toDataURL();
         saveCustomBlocks();
       } catch(e) {}
     }
@@ -3558,3 +3847,133 @@ window.addEventListener("load", function() {
 
 })();
 </script>
+
+<script>
+(function() {
+  // ===== Title screen logic =====
+  const nameInput = document.getElementById('playerNameInput');
+
+  // Pre-fill with last used name if available
+  const savedName = localStorage.getItem('mc2d_playerName');
+  if (savedName) nameInput.value = savedName;
+
+  window.startGameFromTitle = function() {
+    const name = nameInput.value.trim() || 'Steve';
+    localStorage.setItem('mc2d_playerName', name);
+    window.playerName = name;
+    document.getElementById('titleScreen').classList.add('hidden');
+    document.getElementById('canvas').style.display = 'block';
+  };
+
+  // Allow Enter key to start the game
+  nameInput.addEventListener('keydown', e => { if (e.key === 'Enter') startGameFromTitle(); });
+
+  // ===== Animated block background using real game textures =====
+  (function() {
+    const bgCanvas = document.getElementById('titleBgCanvas');
+    const bgCtx = bgCanvas.getContext('2d');
+    bgCtx.imageSmoothingEnabled = false;
+
+    const BS = 32;
+    let scrollX = 0;
+    let running = true;
+
+    // Terrain column: returns array bottom-up [stone..., dirt, dirt, dirt, grass, (wood, wood, leaves, leaves)]
+    // We'll render top-down so we reverse. sky = null entries at top.
+    function buildCol(cx) {
+      const skyRows = 4 + ((cx * 17 + 7) % 3);
+      const hasTree = ((cx * 13 + 3) % 9) < 2;
+      const col = [];
+      for (let i = 0; i < skyRows; i++) col.push(null);
+      if (hasTree) { col.push(5); col.push(5); col.push(4); col.push(4); }
+      col.push(1); // GRASS
+      col.push(2); col.push(2); col.push(2); // DIRT
+      while (col.length < 24) col.push(3); // STONE
+      return col;
+    }
+
+    function drawBlock(type, px, py) {
+      if (type === null) return;
+      if      (type === 1 && texReady) bgCtx.drawImage(grassOff,  px, py, BS, BS);
+      else if (type === 2 && texReady) bgCtx.drawImage(dirtOff,   px, py, BS, BS);
+      else if (type === 3 && texReady) bgCtx.drawImage(stoneOff,  px, py, BS, BS);
+      else if (type === 4 && texReady) bgCtx.drawImage(woodOff,   px, py, BS, BS);
+      else if (type === 5 && texReady) bgCtx.drawImage(leavesOff, px, py, BS, BS);
+      else {
+        // fallback solid colors before textures load
+        const fb = {1:'#4a8c2a',2:'#7a5232',3:'#777',4:'#6b4827',5:'#267018'};
+        bgCtx.fillStyle = fb[type] || '#888';
+        bgCtx.fillRect(px, py, BS, BS);
+      }
+    }
+
+    function resize() {
+      bgCanvas.width  = window.innerWidth;
+      bgCanvas.height = window.innerHeight;
+    }
+    resize();
+    window.addEventListener('resize', resize);
+
+    function draw() {
+      if (!running) return;
+
+      const W = bgCanvas.width, H = bgCanvas.height;
+      bgCtx.clearRect(0, 0, W, H);
+
+      // Sky gradient
+      const sky = bgCtx.createLinearGradient(0, 0, 0, H);
+      sky.addColorStop(0, '#6ab4e8');
+      sky.addColorStop(1, '#c8e8f8');
+      bgCtx.fillStyle = sky;
+      bgCtx.fillRect(0, 0, W, H);
+
+      const startCol = Math.floor(scrollX / BS) - 1;
+      const cols = Math.ceil(W / BS) + 3;
+
+      // Ground level: bottom 40% of screen
+      const groundY = Math.floor(H * 0.60);
+
+      for (let i = 0; i < cols; i++) {
+        const cx = startCol + i;
+        const col = buildCol(cx);
+        const px = Math.round(cx * BS - scrollX);
+
+        // Find where ground starts in col (first non-null from top)
+        const skyRows = col.filter(b => b === null).length;
+
+        for (let r = skyRows; r < col.length; r++) {
+          const py = groundY + (r - skyRows) * BS;
+          if (py > H + BS) break;
+          drawBlock(col[r], px, py);
+        }
+
+        // Side leaves for trees
+        if (col.some(b => b === 4)) {
+          const woodR = col.findIndex(b => b === 4);
+          const leafR = woodR - 1;
+          for (let lr = leafR; lr <= leafR + 1 && lr >= skyRows; lr++) {
+            const py = groundY + (lr - skyRows) * BS;
+            if (py < 0 || py > H) continue;
+            drawBlock(5, px - BS, py);
+            drawBlock(5, px + BS, py);
+          }
+        }
+      }
+
+      scrollX += 0.5;
+      requestAnimationFrame(draw);
+    }
+
+    draw();
+
+    // Stop when game starts
+    const origStart = window.startGameFromTitle;
+    window.startGameFromTitle = function() {
+      running = false;
+      if (origStart) origStart();
+    };
+  })();
+})();
+</script>
+
+
