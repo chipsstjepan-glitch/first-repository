@@ -4419,6 +4419,16 @@ window.addEventListener("load", function() {
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <script>
 (function() {
+  // STUN sam po sebi ne uspijeva spojiti igrače na puno mreža (mobilni internet,
+  // strože kućne/firma mreže). TURN je rezervni "relay" koji to popravlja.
+  var PEER_ICE_CONFIG = {
+    iceServers: [
+      { urls: 'stun:stun.l.google.com:19302' },
+      { urls: 'turn:openrelay.metered.ca:80', username: 'openrelayproject', credential: 'openrelayproject' },
+      { urls: 'turn:openrelay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' },
+      { urls: 'turn:openrelay.metered.ca:443?transport=tcp', username: 'openrelayproject', credential: 'openrelayproject' }
+    ]
+  };
   var mpPeer = null;
   var mpRole = null;
   var mpRoomCode = null;
@@ -4506,7 +4516,7 @@ window.addEventListener("load", function() {
     document.getElementById('mHostBtn').style.display = 'none';
     document.getElementById('mJoinBtn').style.display = 'none';
 
-    mpPeer = new Peer('mc2d-' + mpRoomCode, { host: '0.peerjs.com', port: 443, secure: true, path: '/' });
+    mpPeer = new Peer('mc2d-' + mpRoomCode, { host: '0.peerjs.com', port: 443, secure: true, path: '/', config: PEER_ICE_CONFIG });
 
     mpPeer.on('open', function(id) {
       mpMyId = id;
@@ -4602,7 +4612,7 @@ window.addEventListener("load", function() {
     document.getElementById('mHostBtn').style.display = 'none';
     document.getElementById('mJoinBtn').style.display = 'none';
 
-    mpPeer = new Peer({ host: '0.peerjs.com', port: 443, secure: true, path: '/' });
+    mpPeer = new Peer({ host: '0.peerjs.com', port: 443, secure: true, path: '/', config: PEER_ICE_CONFIG });
 
     mpPeer.on('open', function() {
       var conn = mpPeer.connect('mc2d-' + code, { reliable: false });
@@ -4749,7 +4759,7 @@ window.addEventListener("load", function() {
 
     function becomeHost() {
       isLobbyHost = true;
-      lobbyPeer = new Peer(LOBBY_HOST_ID, { host: '0.peerjs.com', port: 443, secure: true, path: '/' });
+      lobbyPeer = new Peer(LOBBY_HOST_ID, { host: '0.peerjs.com', port: 443, secure: true, path: '/', config: PEER_ICE_CONFIG });
       lobbyPeer.on('open', function() {
         broadcastCount();
       });
@@ -4783,7 +4793,7 @@ window.addEventListener("load", function() {
     }
 
     function becomeClient() {
-      lobbyPeer = new Peer({ host: '0.peerjs.com', port: 443, secure: true, path: '/' });
+      lobbyPeer = new Peer({ host: '0.peerjs.com', port: 443, secure: true, path: '/', config: PEER_ICE_CONFIG });
       lobbyPeer.on('open', function() {
         var conn = lobbyPeer.connect(LOBBY_HOST_ID, { reliable: false });
         lobbyHostConn = conn;
@@ -4818,7 +4828,7 @@ window.addEventListener("load", function() {
         return;
       }
       // Try to become host; if ID taken → become client
-      var testPeer = new Peer(LOBBY_HOST_ID, { host: '0.peerjs.com', port: 443, secure: true, path: '/' });
+      var testPeer = new Peer(LOBBY_HOST_ID, { host: '0.peerjs.com', port: 443, secure: true, path: '/', config: PEER_ICE_CONFIG });
       testPeer.on('open', function() {
         // We got the host ID — destroy testPeer and become real host
         testPeer.destroy();
