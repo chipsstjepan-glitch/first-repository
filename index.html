@@ -4475,6 +4475,14 @@ window.addEventListener("load", function() {
     multiCleanup();
   };
 
+  // Koristi se SAMO kad igra stvarno kreće (host kliknuo Start / primljen startGame) —
+  // sakrije lobby ekran ali NE gasi mpPeer/konekciju, jer je ona i dalje potrebna
+  // tokom igre za slanje pozicija. closeMultiLobby (gore) gasi sve i koristi se
+  // jedino kad korisnik ručno otkaže (✕ CLOSE dugme).
+  function hideLobbyUIOnly() {
+    document.getElementById('multiLobby').classList.remove('show');
+  }
+
   function multiCleanup() {
     if (mpPeer && !mpPeer.destroyed) { try { mpPeer.destroy(); } catch(e){} }
     mpPeer = null; mpRole = null; mpRoomCode = null;
@@ -4645,7 +4653,7 @@ window.addEventListener("load", function() {
       (data.players || []).forEach(function(p) { if (p && p.peerId) mpPlayers[p.peerId] = p; });
       mpPlayers['__host__'] = { name: data.hostName || 'Host', isHost: true };
       renderPlayerList();
-      if (data.gameStarted) { closeMultiLobby(); startMultiGame(0); }
+      if (data.gameStarted) { hideLobbyUIOnly(); startMultiGame(0); }
     } else if (data.type === 'existingPlayers') {
       (data.players || []).forEach(function(p) { if (p && p.peerId) mpPlayers[p.peerId] = p; });
       renderPlayerList();
@@ -4659,7 +4667,7 @@ window.addEventListener("load", function() {
       delete window.mpRemotePlayers[data.peerId];
       renderPlayerList();
     } else if (data.type === 'startGame') {
-      closeMultiLobby();
+      hideLobbyUIOnly();
       startMultiGame(data.seed);
     } else if (data.type === 'pos') {
       var pName = mpPlayers[data.peerId] ? mpPlayers[data.peerId].name : '?';
@@ -4677,7 +4685,7 @@ window.addEventListener("load", function() {
     var seed = Math.floor(Math.random() * 999999);
     window.mpWorldSeed = seed;
     broadcastAll({ type: 'startGame', seed: seed });
-    closeMultiLobby();
+    hideLobbyUIOnly();
     startMultiGame(seed);
   };
 
