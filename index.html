@@ -4689,17 +4689,18 @@ window.addEventListener("load", function() {
   }
 
   function sendMyPosition() {
-    if (!window.player) return;
+    if (typeof player === 'undefined' || !player) return;
     var msg = {
       type: 'pos',
-      x: window.player.x,
-      y: window.player.y,
+      x: player.x,
+      y: player.y,
       dir: (window.playerFacingRight !== false) ? 1 : -1,
-      item: window.selectedBlock || 0,
+      item: (typeof selectedBlock !== 'undefined' ? selectedBlock : 0) || 0,
       headAngle: window._mpHeadAngle || 0,
       swingAngle: window._mpSwingAngle || 0
     };
     if (mpRole === 'host') {
+      msg.peerId = '__host__';
       broadcastAll(msg);
     } else if (mpHostConn && mpHostConn.open) {
       try { mpHostConn.send(msg); } catch(e){}
