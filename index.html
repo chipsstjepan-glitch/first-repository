@@ -4725,7 +4725,8 @@ window.addEventListener("load", function() {
   }
 
   function sendMyPosition() {
-    if (typeof player === 'undefined' || !player) return;
+    if (typeof player === 'undefined' || !player) { mpDebugSet('playerMissing', true); return; }
+    mpDebugSet('playerMissing', false);
     var msg = {
       type: 'pos',
       x: player.x,
@@ -4735,13 +4736,60 @@ window.addEventListener("load", function() {
       headAngle: window._mpHeadAngle || 0,
       swingAngle: window._mpSwingAngle || 0
     };
+    mpDebugSet('lastSent', Date.now());
+    mpDebugSet('sentCount', (mpDebugState.sentCount || 0) + 1);
     if (mpRole === 'host') {
       msg.peerId = '__host__';
+      mpDebugSet('connCount', Object.keys(mpConnections).length);
       broadcastAll(msg);
     } else if (mpHostConn && mpHostConn.open) {
-      try { mpHostConn.send(msg); } catch(e){}
+      mpDebugSet('hostConnOpen', true);
+      try { mpHostConn.send(msg); } catch(e){ mpDebugSet('sendError', String(e)); }
+    } else {
+      mpDebugSet('hostConnOpen', false);
     }
   }
+
+  // ── Dijagnostički prikaz na ekranu (privremeno, za otkrivanje greške) ──
+  var mpDebugState = {};
+  var mpDebugEl = null;
+  function mpDebugSet(key, val) { mpDebugState[key] = val; }
+  function mpDebugEnsureEl() {
+    if (mpDebugEl) return mpDebugEl;
+    mpDebugEl = document.createElement('div');
+    mpDebugEl.id = 'mpDebugOverlay';
+    mpDebugEl.style.cssText = 'position:fixed;top:8px;right:8px;z-index:9999;background:rgba(0,0,0,0.78);color:#9dff9d;font-family:monospace;font-size:11px;padding:8px 10px;border-radius:6px;border:1px solid #4a8a4a;max-width:240px;line-height:1.5;white-space:pre-wrap;pointer-events:none;';
+    document.body.appendChild(mpDebugEl);
+    return mpDebugEl;
+  }
+  function mpDebugTick() {
+    if (!window.mpActive) {
+      if (mpDebugEl) { mpDebugEl.remove(); mpDebugEl = null; }
+      return;
+    }
+    var el = mpDebugEnsureEl();
+    var now = Date.now();
+    var remoteCount = window.mpRemotePlayers ? Object.keys(window.mpRemotePlayers).length : 0;
+    var remoteList = window.mpRemotePlayers ? Object.entries(window.mpRemotePlayers).map(function(e){
+      var age = now - (e[1].ts || 0);
+      return '  ' + e[0] + ' "' + e[1].name + '" age=' + age + 'ms';
+    }).join('\n') : '';
+    var lines = [
+      'MP DEBUG',
+      'role: ' + mpRole,
+      'peer open: ' + (mpPeer ? !mpPeer.destroyed : 'no peer'),
+      'connections (host): ' + Object.keys(mpConnections).length,
+      'hostConn open (client): ' + (mpHostConn ? !!mpHostConn.open : 'n/a'),
+      'sent count: ' + (mpDebugState.sentCount || 0),
+      'last sent: ' + (mpDebugState.lastSent ? (now - mpDebugState.lastSent) + 'ms ago' : 'never'),
+      'player obj missing: ' + !!mpDebugState.playerMissing,
+      'send error: ' + (mpDebugState.sendError || '-'),
+      'remotePlayers (' + remoteCount + '):',
+      remoteList || '  (none)'
+    ];
+    el.textContent = lines.join('\n');
+  }
+  setInterval(mpDebugTick, 400);
 
   document.addEventListener('keydown', function(e) {
     if (document.getElementById('multiLobby').classList.contains('show') && e.key === 'Enter') {
