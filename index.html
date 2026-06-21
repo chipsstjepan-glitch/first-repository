@@ -72,6 +72,17 @@
 
   #settingsBtn { padding:6px 10px; background:rgba(0,0,0,0.7); border:2px solid #555; color:#fff; cursor:pointer; font-size:16px; border-radius:4px; line-height:1; }
   #settingsBtn.active { border-color:#7ec8e3; color:#7ec8e3; }
+  #pauseBtn { padding:6px 10px; background:rgba(0,0,0,0.7); border:2px solid #555; color:#fff; cursor:pointer; font-size:16px; border-radius:4px; line-height:1; }
+  #pauseBtn.active { border-color:#7ec8e3; color:#7ec8e3; }
+  #pauseMenuOverlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.65); z-index:130; align-items:center; justify-content:center; font-family:'Courier New', monospace; }
+  #pauseMenuOverlay.show { display:flex; }
+  #pauseMenuBox { display:flex; flex-direction:column; gap:14px; align-items:stretch; background:rgba(15,22,15,0.92); border:3px solid #4a8a4a; border-radius:12px; padding:30px 38px; min-width:220px; box-shadow:0 0 50px rgba(0,0,0,0.7); }
+  .pauseMenuBtn { padding:13px 22px; border-radius:6px; cursor:pointer; font-family:monospace; font-size:15px; font-weight:bold; letter-spacing:1.5px; border:2px solid; text-align:center; transition: background 0.15s, transform 0.08s; }
+  .pauseMenuBtn:active { transform: translateY(2px); }
+  #exitGameBtn { background: linear-gradient(180deg,#7a2a2a 0%,#5a1d1d 100%); border-color:#c06060; color:#ffe8e8; }
+  #exitGameBtn:hover { background: linear-gradient(180deg,#8a3a3a 0%,#6a2828 100%); }
+  #resumeBtn { background: linear-gradient(180deg,#3a7a3a 0%,#2a5a2a 100%); border-color:#5cb85c; color:#e8ffe8; }
+  #resumeBtn:hover { background: linear-gradient(180deg,#4a8a4a 0%,#356a35 100%); }
   #settingsOverlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#1a1a1a; z-index:120; overflow-y:auto; }
   #settingsOverlay.show { display:block; }
   .setBlockBtn { display:flex; align-items:center; gap:8px; padding:6px 10px; background:#494949; border:2px solid #606060; color:#fff; cursor:pointer; font-family:monospace; font-size:12px; border-radius:3px; }
@@ -96,7 +107,6 @@
   }
   #titleScreen {
     position: fixed; inset: 0; z-index: 1000;
-    display: flex; align-items: center; justify-content: center;
     font-family: 'Courier New', monospace;
   }
   #titleBgCanvas {
@@ -109,80 +119,371 @@
     z-index: 1;
   }
   #titleScreen.hidden { display: none; }
-  #titleBox {
-    position: relative; z-index: 2;
-    background: rgba(15,22,15,0.88);
-    border: 3px solid #4a8a4a; border-radius: 12px;
-    padding: 32px 36px; width: 340px; max-width: 90vw;
-    box-shadow: 0 0 50px rgba(0,0,0,0.7), inset 0 0 40px rgba(74,138,74,0.08);
-    text-align: center;
+
+  /* Top-right corner: YOUTUBE / DISCORD / Last videos link (matches wireframe) */
+  #titleSocial {
+    position: relative; z-index: 3;
+    display: flex; flex-direction: column; gap: 8px;
+    flex-shrink: 0;
     animation: titleFadeUp 0.5s ease-out;
   }
-  #titleEmoji { font-size: 38px; margin-bottom: 6px; display: block; }
-  #titleBox h1 {
-    display: block; font-size: 26px; color: #9dff9d;
-    animation: titleGlow 3s ease-in-out infinite;
-    margin-bottom: 6px; letter-spacing: 1.5px;
-  }
-  #titleSubtitle {
-    color: #9bbf9b; font-size: 11px; margin-bottom: 22px;
-    letter-spacing: 2px; text-transform: uppercase; opacity: 0.8;
-  }
-  .titleField { margin-bottom: 16px; text-align: left; }
-  .titleField label {
-    display:block; font-size: 11px; color: #8fb88f; margin-bottom: 5px;
-    letter-spacing: 0.5px;
-  }
-  .titleField input {
-    width: 100%; padding: 10px 12px; background: rgba(0,0,0,0.35);
-    border: 2px solid #3d5a3d; border-radius: 6px;
-    color: #e8ffe8; font-family: monospace; font-size: 13px;
-    transition: border-color 0.2s, box-shadow 0.2s;
-  }
-  .titleField input:focus {
-    outline: none; border-color: #7ec8e3;
-    box-shadow: 0 0 10px rgba(126,200,227,0.3);
-  }
-  .titleField input::placeholder { color: #5a7a5a; }
-  #playBtn {
-    width: 100%; padding: 13px; margin-top: 4px; border: 2px solid #5cb85c;
-    background: linear-gradient(180deg, #3a7a3a 0%, #2a5a2a 100%);
-    color: #e8ffe8; font-family: monospace; font-size: 16px;
-    font-weight: bold; border-radius: 6px; cursor: pointer; letter-spacing: 1.5px;
-    box-shadow: 0 3px 0 #1d3d1d, 0 4px 10px rgba(0,0,0,0.4);
-    transition: transform 0.08s, box-shadow 0.08s;
-  }
-  #playBtn:hover { background: linear-gradient(180deg, #4a8a4a 0%, #356a35 100%); }
-  #playBtn:active { transform: translateY(3px); box-shadow: 0 0 0 #1d3d1d, 0 1px 4px rgba(0,0,0,0.4); }
-  #discordLink {
+  .socialBtn {
     display: flex; align-items: center; justify-content: center; gap: 7px;
-    margin-top: 18px; padding: 10px; border: 2px solid #5865F2; border-radius: 6px;
-    background: rgba(88,101,242,0.12); color: #c2c8ff; font-family: monospace;
-    font-size: 12px; text-decoration: none; font-weight: bold;
-    transition: background 0.15s;
-
+    padding: 10px; border-radius: 6px; text-decoration: none;
+    font-family: monospace; font-size: 12px; font-weight: bold; letter-spacing: 0.5px;
+    background: rgba(15,22,15,0.85); border: 2px solid #4a8a4a; color: #e8ffe8;
+    transition: background 0.15s, border-color 0.15s;
   }
+  .socialBtn:hover { background: rgba(74,138,74,0.35); border-color: #7ec8e3; }
+  #discordLink { border-color: #5865F2; color: #c2c8ff; background: rgba(88,101,242,0.12); }
   #discordLink:hover { background: rgba(88,101,242,0.3); }
+  #lastVideosLink {
+    display: block; text-align: center; margin-top: 2px;
+    color: #9bbf9b; font-size: 10.5px; letter-spacing: 0.5px;
+    text-decoration: none; border-bottom: 1px dashed #3d5a3d; padding-bottom: 6px;
+    transition: color 0.15s;
+  }
+  #lastVideosLink:hover { color: #e8ffe8; border-color: #7ec8e3; }
+
+  /* Center: title, name field, mode buttons (matches wireframe) */
+  #titleBox {
+    position: relative; z-index: 2; pointer-events: none;
+    display: flex; flex-direction: column; align-items: center;
+    height: 100%; justify-content: center; gap: 22px;
+    padding: 0 20px; text-align: center;
+    animation: titleFadeUp 0.5s ease-out;
+  }
+  #titleBox .titleField, #titleBox .modeBtn { pointer-events: auto; }
+  #titleEmoji { font-size: 30px; display: block; }
+  #titleBox h1 {
+    display: block; font-size: clamp(26px, 5vw, 42px); color: #9dff9d;
+    animation: titleGlow 3s ease-in-out infinite;
+    letter-spacing: 2px;
+  }
+  #titleModeColumn { display: flex; flex-direction: column; align-items: stretch; gap: 22px; max-width: 80vw; }
+  .titleField { width: 280px; max-width: 80vw; }
+  .titleField input {
+    width: 100%; padding: 9px 4px; background: transparent;
+    border: none; border-bottom: 2px solid #4a8a4a;
+    color: #e8ffe8; font-family: monospace; font-size: 14px; text-align: left;
+    transition: border-color 0.2s;
+  }
+  .titleField input:focus { outline: none; border-color: #7ec8e3; }
+  .titleField input::placeholder { color: #6a8a6a; }
+
+  /* Mode cards: SURVIVAL + CREATIVE each with a + button and player count */
+  #modeButtons { display: flex; gap: 18px; flex-wrap: wrap; justify-content: flex-start; align-items: flex-start; }
+  .modeCard { display: flex; flex-direction: column; align-items: stretch; gap: 0; }
+  .modeBtnRow { display: flex; gap: 0; width: 100%; }
+  .modeBtnRow .modeBtn { flex: 1; }
+  .modeBtn {
+    padding: 13px 24px; border: 2px solid #5cb85c; border-right: none; cursor: pointer;
+    background: linear-gradient(180deg, #3a7a3a 0%, #2a5a2a 100%);
+    color: #e8ffe8; font-family: monospace; font-size: 14px;
+    font-weight: bold; letter-spacing: 1.5px;
+    box-shadow: 0 3px 0 #1d3d1d, 0 4px 10px rgba(0,0,0,0.4);
+    transition: transform 0.08s, box-shadow 0.08s, background 0.15s;
+    border-radius: 6px 0 0 6px;
+  }
+  .modeBtn:hover { background: linear-gradient(180deg, #4a8a4a 0%, #356a35 100%); }
+  .modeBtn:active { transform: translateY(2px); box-shadow: 0 1px 0 #1d3d1d; }
+  .modePlusBtn {
+    padding: 13px 13px; border: 2px solid #5cb85c; cursor: pointer;
+    background: linear-gradient(180deg, #2a5a2a 0%, #1d3d1d 100%);
+    color: #9dff9d; font-family: monospace; font-size: 18px; font-weight: bold;
+    box-shadow: 0 3px 0 #1d3d1d, 0 4px 10px rgba(0,0,0,0.4);
+    transition: transform 0.08s, background 0.15s;
+    border-radius: 0 6px 6px 0;
+    line-height: 1;
+  }
+  .modePlusBtn:hover { background: linear-gradient(180deg, #3a7a3a 0%, #2a5a2a 100%); color: #fff; }
+  .modePlusBtn:active { transform: translateY(2px); }
+  .modePlusBtn:hover { background: linear-gradient(180deg, #3a7a3a 0%, #2a5a2a 100%); color: #fff; }
+  .modePlusBtn:active { transform: translateY(2px); }
+  .modePlayerCount { display: none; }
+
+  /* Room bar — only shown under SURVIVAL (the only playable mode right now) */
+  .modeRoomBar {
+    display: flex; align-items: center; gap: 10px;
+    background: rgba(0,0,0,0.5); border: 1px solid rgba(92,184,92,0.35);
+    border-radius: 0 0 6px 6px; padding: 7px 14px; margin-top: 4px;
+    font-family: monospace; font-size: 12px;
+    pointer-events: none;
+  }
+  .modeRoomLabel { color: #9dff9d; font-weight: bold; letter-spacing: 1.5px; font-size: 10.5px; }
+  .modeRoomCount { color: #c8e8c8; }
+  .modeRoomNum { color: #9dff9d; font-weight: bold; }
+
+  @media (max-width: 560px) {
+    .socialBtn { padding: 7px; font-size: 10px; }
+    #lastVideosLink { font-size: 9px; }
+    #titleBox { gap: 14px; }
+    .modeBtn { padding: 10px 16px; font-size: 12px; }
+    .modePlusBtn { padding: 10px 10px; font-size: 15px; }
+    #titleLeftCol { top: 10px; left: 10px; bottom: 10px; width: 110px; }
+    #signInBtn { padding: 10px 22px; font-size: 12px; min-width: 90px; }
+    #signInSquareBtn { width: 40px; height: 40px; font-size: 14px; }
+    #titleLeftNav { gap: 10px; margin-top: 14px; }
+    .leftNavBtn { padding: 14px 8px; font-size: 11px; }
+    #missionsBtn, #shopBtn { min-height: 44px; }
+    #titleRightCol { top: 10px; right: 10px; bottom: 10px; width: 130px; }
+    #titleVideosPanel { gap: 6px; margin-top: 14px; }
+    .videoThumb { min-height: 40px; }
+    #titleCenterRow { gap: 12px; }
+    #titleCharacterBox { width: 110px; height: 160px; }
+  }
+
+  /* ===== "Coming soon" purple styling (wireframe extras) ===== */
+  .comingSoonBtn {
+    position: relative; cursor: not-allowed;
+    background: linear-gradient(180deg, #6a4fb8 0%, #4a3580 100%);
+    border: 2px solid #9b7fe8; color: #ecdfff;
+    font-family: monospace; font-weight: bold; letter-spacing: 1px;
+    border-radius: 6px; text-align: center;
+    box-shadow: 0 3px 0 #3a2860, 0 4px 10px rgba(0,0,0,0.35);
+    transition: transform 0.08s, background 0.15s;
+    overflow: hidden;
+  }
+  .comingSoonBtn:hover { background: linear-gradient(180deg, #7a5fc8 0%, #5a4590 100%); }
+  .comingSoonBtn:active { transform: translateY(2px); }
+  .comingSoonBtn::after {
+    content: 'COMING SOON';
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(40,20,70,0.88);
+    color: #d8c4ff; font-size: 9px; letter-spacing: 1px;
+    opacity: 0; transition: opacity 0.15s;
+    font-family: monospace; font-weight: bold;
+  }
+  .comingSoonBtn:hover::after { opacity: 1; }
+
+  /* keep the CREATIVE pair visually joined like SURVIVAL's green pair */
+  .modeBtn.comingSoonBtn { border-right: none; border-radius: 6px 0 0 6px; }
+  .modePlusBtn.comingSoonBtn { border-radius: 0 6px 6px 0; }
+
+  /* Left column: Sign in row + Missions/Pass/Shop, stretched top-to-bottom (wireframe) */
+  #titleLeftCol {
+    position: absolute; top: 18px; left: 18px; bottom: 18px; z-index: 3;
+    display: flex; flex-direction: column;
+    width: 180px; max-width: 36vw;
+    animation: titleFadeUp 0.5s ease-out;
+  }
+  #titleTopLeft {
+    display: flex; gap: 10px; align-items: center; flex-shrink: 0;
+  }
+  #signInBtn { padding: 16px 38px; font-size: 16px; min-width: 150px; flex: 1; }
+  #signInSquareBtn { width: 56px; height: 56px; padding: 0; font-size: 18px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+
+  #titleLeftNav {
+    display: flex; flex-direction: column; gap: 16px;
+    flex: 1; min-height: 0; margin-top: 24px;
+  }
+  .leftNavBtn { padding: 22px 12px; font-size: 15px; flex-shrink: 0; }
+  #missionsBtn, #shopBtn { min-height: 64px; }
+  #passBtn { flex: 1; align-items: flex-start; padding-top: 14px; }
+
+  /* Right side: REDDIT / WIKI extras + video panel (wireframe) */
+  #redditLink, #wikiLink { cursor: not-allowed; }
+
+  /* Right column: social links + video panel, stretched top-to-bottom (wireframe) */
+  #titleRightCol {
+    position: absolute; top: 18px; right: 18px; bottom: 18px; z-index: 3;
+    display: flex; flex-direction: column;
+    width: 220px; max-width: 42vw;
+    animation: titleFadeUp 0.5s ease-out;
+  }
+  #titleVideosPanel {
+    display: flex; flex-direction: column; gap: 10px;
+    flex: 1; min-height: 0; margin-top: 24px;
+  }
+  #titleVideosLabel {
+    background: rgba(15,22,15,0.85); border: 2px solid #4a8a4a; color: #9bbf9b;
+    font-family: monospace; font-size: 12px; letter-spacing: 0.5px;
+    padding: 10px 12px; border-radius: 6px; text-align: center;
+    flex-shrink: 0;
+  }
+  .videoThumb {
+    border-radius: 6px; flex: 1; min-height: 60px;
+  }
+
+  /* Center row: empty character placeholder box + mode buttons (wireframe) */
+  #titleCenterRow { display: flex; gap: 26px; align-items: flex-start; justify-content: center; }
+  #titleCharacterBox {
+    width: 230px; height: 320px; flex-shrink: 0;
+    margin-top: -9px;
+    border: 2px solid rgba(255,255,255,0.35);
+    border-radius: 8px; background: rgba(255,255,255,0.04);
+  }
+
+  /* ===== Multiplayer Lobby ===== */
+
+  #multiLobby {
+    display: none; position: fixed; inset: 0; z-index: 2000;
+    background: rgba(0,0,0,0.88);
+    align-items: center; justify-content: center;
+    font-family: 'Courier New', monospace;
+  }
+  #multiLobby.show { display: flex; }
+  #multiLobbyBox {
+    background: rgba(10,18,10,0.97); border: 3px solid #c8a060;
+    border-radius: 12px; padding: 28px 32px; min-width: 320px; max-width: 95vw;
+    display: flex; flex-direction: column; gap: 14px; align-items: stretch;
+    box-shadow: 0 0 60px rgba(200,160,60,0.25);
+  }
+  #multiLobbyBox h2 { color: #ffe8b0; font-size: 18px; letter-spacing: 2px; text-align: center; margin: 0; }
+  #multiLobbyBox .mlabel { color: #c8a060; font-size: 11px; letter-spacing: 0.5px; margin-bottom: -8px; }
+  #multiRoomCode {
+    background: #1a2a1a; border: 2px solid #4a8a4a; color: #9dff9d;
+    font-family: monospace; font-size: 28px; letter-spacing: 6px;
+    text-align: center; padding: 10px; border-radius: 6px;
+    font-weight: bold; display: none;
+  }
+  #multiStatus { color: #9dff9d; font-size: 12px; text-align: center; min-height: 18px; }
+  #multiPlayerList { display: flex; flex-direction: column; gap: 6px; min-height: 40px; }
+  .mPlayerEntry {
+    display: flex; align-items: center; gap: 8px;
+    background: rgba(255,255,255,0.06); border-radius: 4px; padding: 6px 10px;
+    font-size: 12px; color: #e8ffe8;
+  }
+  .mPlayerDot { width: 8px; height: 8px; border-radius: 50%; background: #5cb85c; flex-shrink: 0; }
+  .mPlayerDot.host { background: #c8a060; }
+  #multiJoinInput {
+    background: transparent; border: none; border-bottom: 2px solid #4a8a4a;
+    color: #e8ffe8; font-family: monospace; font-size: 22px; letter-spacing: 4px;
+    text-align: center; padding: 8px; width: 100%; text-transform: uppercase;
+  }
+  #multiJoinInput:focus { outline: none; border-color: #c8a060; }
+  #multiJoinInput::placeholder { color: #3a5a3a; font-size: 14px; letter-spacing: 1px; }
+  .mBtn {
+    padding: 11px 18px; border-radius: 6px; cursor: pointer; font-family: monospace;
+    font-size: 13px; font-weight: bold; letter-spacing: 1px; border: 2px solid;
+    text-align: center; transition: background 0.15s, transform 0.08s;
+  }
+  .mBtn:active { transform: translateY(2px); }
+  #mHostBtn { background: linear-gradient(180deg,#3a7a3a,#2a5a2a); border-color: #5cb85c; color: #e8ffe8; }
+  #mJoinBtn { background: linear-gradient(180deg,#7a5a20,#5a3d10); border-color: #c8a060; color: #ffe8b0; }
+  #mStartBtn { background: linear-gradient(180deg,#2a5a78,#1d3f54); border-color: #7ec8e3; color: #e8f8ff; display: none; }
+  #mCancelBtn { background: rgba(80,20,20,0.6); border-color: #804040; color: #ffb0b0; font-size: 11px; padding: 8px; }
+  #mBtnRow { display: flex; gap: 10px; }
+  #mBtnRow .mBtn { flex: 1; }
+  #mDivider { border: none; border-top: 1px solid #2a3a2a; margin: 2px 0; }
 </style>
 </head>
 <body>
 <div id="titleScreen">
   <canvas id="titleBgCanvas"></canvas>
   <div id="titleBgOverlay"></div>
+
+  <!-- Top-left: Sign in (coming soon) -->
+  <div id="titleLeftCol">
+    <div id="titleTopLeft">
+      <button id="signInBtn" class="socialBtn comingSoonBtn" type="button">SIGN IN</button>
+      <button id="signInSquareBtn" class="socialBtn comingSoonBtn" type="button" title="Account"></button>
+    </div>
+
+    <!-- Left nav column: MISSIONS / PASS / SHOP (coming soon) -->
+    <div id="titleLeftNav">
+      <button id="missionsBtn" class="socialBtn comingSoonBtn leftNavBtn" type="button">MISSIONS</button>
+      <button id="passBtn" class="socialBtn comingSoonBtn leftNavBtn" type="button">PASS</button>
+      <button id="shopBtn" class="socialBtn comingSoonBtn leftNavBtn" type="button">SHOP</button>
+    </div>
+  </div>
+
+  <div id="titleRightCol">
+    <div id="titleSocial">
+      <a id="youtubeLink" class="socialBtn" href="https://www.youtube.com/@Bearcoder1" target="_blank" rel="noopener noreferrer">▶ YOUTUBE</a>
+      <a id="discordLink" class="socialBtn" href="https://discord.gg/XGKZwqNXHd" target="_blank" rel="noopener noreferrer">💬 DISCORD</a>
+      <button id="redditLink" class="socialBtn comingSoonBtn" type="button">REDDIT</button>
+      <button id="wikiLink" class="socialBtn comingSoonBtn" type="button">WIKI</button>
+    </div>
+
+    <!-- Last youtube videos thumbnails (coming soon) -->
+    <div id="titleVideosPanel">
+      <div id="titleVideosLabel">Last youtube videos</div>
+      <button class="socialBtn comingSoonBtn videoThumb" type="button"></button>
+      <button class="socialBtn comingSoonBtn videoThumb" type="button"></button>
+    </div>
+  </div>
+
   <div id="titleBox">
     <span id="titleEmoji">🌿</span>
     <h1>NATURE CRAFT 2D</h1>
-    <div id="titleSubtitle">Build · Mine · Explore</div>
-    <div class="titleField">
-      <label>Your name</label>
-      <input type="text" id="playerNameInput" maxlength="16" placeholder="Steve">
+    <div id="titleCenterRow">
+
+      <!-- Empty placeholder box, character image goes here later -->
+      <div id="titleCharacterBox"></div>
+
+      <div id="titleModeColumn">
+        <div class="titleField">
+          <input type="text" id="playerNameInput" maxlength="16" placeholder="User name">
+        </div>
+        <div id="modeButtons">
+
+          <!-- SURVIVAL card -->
+          <div class="modeCard">
+            <div class="modeBtnRow">
+              <button id="survivalBtn" class="modeBtn" onclick="startGameFromTitle('survival')">SURVIVAL</button>
+              <button class="modePlusBtn" id="survivalPlusBtn" onclick="openMultiLobby('survival')" title="Multiplayer room">+</button>
+            </div>
+            <div class="modeRoomBar" id="survivalRoomBar">
+              <span class="modeRoomLabel">MAIN ROOM</span>
+              <span class="modeRoomCount">Players online: <span class="modeRoomNum">...</span></span>
+            </div>
+          </div>
+
+          <!-- CREATIVE card (coming soon) -->
+          <div class="modeCard">
+            <div class="modeBtnRow">
+              <button id="creativeBtn" class="modeBtn comingSoonBtn" type="button">CREATIVE</button>
+              <button class="modePlusBtn comingSoonBtn" id="creativePlusBtn" type="button" title="Multiplayer room">+</button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
     </div>
-    <button id="playBtn" onclick="startGameFromTitle()">▶ Play</button>
-    <a id="discordLink" href="https://discord.gg/6rAw8Mby" target="_blank" rel="noopener noreferrer">💬 Join our Discord</a>
+
+  </div>
+</div>
+
+<!-- Multiplayer Lobby Overlay -->
+<div id="multiLobby">
+  <div id="multiLobbyBox">
+    <h2 id="multiLobbyTitle">🌐 MULTIPLAYER</h2>
+    <div id="multiStatus">Choose an option below</div>
+
+    <div id="mBtnRow">
+      <button class="mBtn" id="mHostBtn" onclick="multiHost()">⭐ CREATE ROOM</button>
+      <button class="mBtn" id="mJoinBtn" onclick="multiShowJoin()">🔗 JOIN ROOM</button>
+    </div>
+
+    <div id="multiRoomCode"></div>
+
+    <div id="mJoinSection" style="display:none; flex-direction:column; gap:10px;">
+      <hr id="mDivider">
+      <span class="mlabel">ENTER ROOM CODE (6 chars)</span>
+      <input id="multiJoinInput" type="text" maxlength="6" placeholder="e.g. ABC123" autocomplete="off" spellcheck="false">
+      <button class="mBtn" id="mDoJoinBtn" onclick="multiDoJoin()" style="background:linear-gradient(180deg,#3a5a3a,#2a3a2a);border-color:#5cb85c;color:#e8ffe8;">✅ CONNECT</button>
+    </div>
+
+    <hr id="mDivider2" style="border:none;border-top:1px solid #2a3a2a;margin:2px 0;display:none;">
+    <div id="mPlayersLabel" style="display:none;" class="mlabel">PLAYERS IN ROOM</div>
+    <div id="multiPlayerList"></div>
+
+    <button class="mBtn" id="mStartBtn" onclick="multiStartGame()">▶ START GAME</button>
+    <button class="mBtn" id="mCancelBtn" onclick="closeMultiLobby()">✕ CLOSE</button>
   </div>
 </div>
 <h1>⛏ Nature Craft 2D</h1>
 <div id="coords">X: 0 Y: 0</div>
+<button id="pauseBtn" onclick="togglePauseMenu()" title="Menu" style="position:fixed;top:8px;left:10px;z-index:20;">☰</button>
+<div id="pauseMenuOverlay">
+  <div id="pauseMenuBox">
+    <button id="exitGameBtn" class="pauseMenuBtn" onclick="exitGame()">EXIT GAME</button>
+    <button id="resumeBtn" class="pauseMenuBtn" onclick="togglePauseMenu()">RESUME</button>
+  </div>
+</div>
 <button id="settingsBtn" onclick="toggleSettings()" title="Block Settings" style="position:fixed;top:8px;right:10px;z-index:20;">⚙️</button>
 <div id="ui">
   <div id="hotbar"></div>
@@ -1799,6 +2100,10 @@ function drawPlayer() {
   let headAngle = Math.atan2(dyMouse, Math.abs(dxMouse)); // bočna strana prati miš, isto na obje strane
   // Clamp: glava ne može ići više od ~80° u bilo koju stranu
   headAngle = Math.max(-Math.PI * 0.44, Math.min(Math.PI * 0.44, headAngle));
+  // Izvozi za multiplayer broadcast
+  window._mpHeadAngle = headAngle;
+  window._mpSwingAngle = swingAngle;
+  window.playerFacingRight = !headFlip;
   // Ako miš s desne strane pivota → normalno; lijeve → flip (headFlip već definiran gore)
   ctx.save();
   ctx.translate(headCX, headBottomY);
@@ -1880,6 +2185,19 @@ function drawPlayer() {
     ctx.globalAlpha = 1;
     ctx.restore();
   }
+
+  // Ime igrača iznad lika (ako nije uneseno, prikazuje se "Unnamed")
+  const dispName = (window.playerName && window.playerName.trim()) ? window.playerName : 'Unnamed';
+  const nameFontSize = Math.max(10, Math.floor(pw * 0.42));
+  const nameX = px + pw / 2;
+  const nameY = py - 6;
+  ctx.save();
+  ctx.font = `${nameFontSize}px monospace`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'alphabetic';
+  ctx.fillStyle = '#ffffff';
+  ctx.fillText(dispName, nameX, nameY);
+  ctx.restore();
 }
 
 var joystickTargetBlock = null;
@@ -1927,6 +2245,102 @@ function render() {
   for(let x=x0;x<x1;x++) for(let y=y0;y<y1;y++) if(world[x]&&world[x][y]!==AIR) drawBlock(x,y,world[x][y]);
 
   drawPlayer();
+
+  // ── Multiplayer: crtaj udaljene igrače ──────────────────────
+  if (window.mpActive && window.mpRemotePlayers) {
+    const now = Date.now();
+    const zoom = getZoom();
+    const ts = Math.ceil(TILE * zoom);
+    Object.values(window.mpRemotePlayers).forEach(function(rp) {
+      if (!rp || now - rp.ts > 5000) return; // stale > 5s = ne prikazuj
+      // Pozicija na ekranu (isti koordinatni sistem kao lokalni player)
+      const rpx = Math.floor((rp.x - camX) * TILE * zoom);
+      const rpy = Math.floor((rp.y - camY) * TILE * zoom);
+      const rpw = ts; // širina
+      const rph = Math.ceil(ts * 1.8); // visina (player visina ≈ 1.8 bloka)
+      const headS = Math.ceil(rpw * 0.85);
+      const bodyH = Math.ceil(rph * 0.38);
+      const legsH = Math.ceil(rph * 0.34);
+      const slimW = Math.ceil(rpw * 0.55);
+      const slimX = rpx + Math.floor((rpw - slimW) / 2);
+      const swing = Math.sin(now * 0.005) * 0.3;
+      const facingLeft = rp.dir < 0;
+
+      ctx.save();
+      if (facingLeft) {
+        ctx.translate(rpx + rpw, rpy);
+        ctx.scale(-1, 1);
+        ctx.translate(-rpx, -rpy);
+      }
+
+      // Tijelo
+      ctx.fillStyle = '#3a7bd5';
+      ctx.fillRect(slimX, rpy + headS, slimW, bodyH);
+
+      // Ruke
+      const armW = Math.ceil(rpw * 0.18);
+      ctx.fillStyle = '#2a5ba5';
+      // lijeva ruka (iza)
+      ctx.save();
+      ctx.translate(slimX - armW/2, rpy + headS + bodyH * 0.05);
+      ctx.rotate(-swing);
+      ctx.fillRect(-armW/2, 0, armW, bodyH);
+      ctx.restore();
+      // desna ruka
+      ctx.save();
+      ctx.translate(slimX + slimW + armW/2, rpy + headS + bodyH * 0.05);
+      ctx.rotate(swing);
+      ctx.fillRect(-armW/2, 0, armW, bodyH);
+      ctx.restore();
+
+      // Noge
+      const legW = Math.ceil(slimW * 0.45);
+      ctx.fillStyle = '#1a3a75';
+      ctx.save();
+      ctx.translate(slimX + legW * 0.5, rpy + headS + bodyH);
+      ctx.rotate(swing);
+      ctx.fillRect(-legW/2, 0, legW, legsH);
+      ctx.restore();
+      ctx.fillStyle = '#2a5ba5';
+      ctx.save();
+      ctx.translate(slimX + slimW - legW * 0.5, rpy + headS + bodyH);
+      ctx.rotate(-swing);
+      ctx.fillRect(-legW/2, 0, legW, legsH);
+      ctx.restore();
+
+      // Glava
+      const headCX = rpx + rpw / 2;
+      const headBotY = rpy + headS;
+      const hAngle = Math.max(-0.6, Math.min(0.6, rp.headAngle || 0));
+      ctx.save();
+      ctx.translate(headCX, headBotY);
+      ctx.rotate(hAngle);
+      ctx.fillStyle = '#f5cba7';
+      ctx.fillRect(-headS/2, -headS, headS, headS);
+      ctx.fillStyle = '#111';
+      ctx.fillRect(-headS/2+Math.floor(headS*.2),-headS+Math.floor(headS*.25),Math.max(2,Math.floor(headS*.18)),Math.max(2,Math.floor(headS*.18)));
+      ctx.fillRect(-headS/2+Math.floor(headS*.58),-headS+Math.floor(headS*.25),Math.max(2,Math.floor(headS*.18)),Math.max(2,Math.floor(headS*.18)));
+      ctx.restore();
+
+      ctx.restore(); // facingLeft flip
+
+      // Ime igrača
+      const nameFSize = Math.max(9, Math.floor(rpw * 0.38));
+      ctx.save();
+      ctx.font = 'bold ' + nameFSize + 'px monospace';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'alphabetic';
+      ctx.fillStyle = '#ffff88';
+      ctx.strokeStyle = '#000';
+      ctx.lineWidth = 2;
+      const nameXR = rpx + rpw / 2;
+      const nameYR = rpy - 4;
+      ctx.strokeText(rp.name || '?', nameXR, nameYR);
+      ctx.fillText(rp.name || '?', nameXR, nameYR);
+      ctx.restore();
+    });
+  }
+  // ── kraj multiplayer crtanja ──────────────────────────────────
 
   // White outline — joystick (uvijek, čak i zrak/bg) ili miš
   const hx=Math.floor(camX+mouseX/(TILE*getZoom()));
@@ -2138,12 +2552,15 @@ function update(){
 // ── Input ─────────────────────────────────────────────────
 document.addEventListener('keydown',e=>{
   if (!document.getElementById('titleScreen').classList.contains('hidden')) return;
+  if (document.getElementById('pauseMenuOverlay').classList.contains('show')) return;
+  if(e.code==='Escape'){ togglePauseMenu(); return; }
   if(e.code==='KeyF'){ bgMode=!bgMode; return; }keys[e.key]=true;});
 document.addEventListener('keyup',  e=>{
   if (!document.getElementById('titleScreen').classList.contains('hidden')) return;
   keys[e.key]=false;});
 document.addEventListener('keydown',e=>{
   if (!document.getElementById('titleScreen').classList.contains('hidden')) return;
+  if (document.getElementById('pauseMenuOverlay').classList.contains('show')) return;
   if(e.code==='KeyF'){ bgMode=!bgMode; return; }
   let n=parseInt(e.key);
   if(e.key==='0') n=10;
@@ -3291,6 +3708,25 @@ window.addEventListener("load", function() {
   }
   window.toggleSettings = toggleSettings;
 
+  function togglePauseMenu() {
+    const ov = document.getElementById('pauseMenuOverlay');
+    const btn = document.getElementById('pauseBtn');
+    const show = !ov.classList.contains('show');
+    ov.classList.toggle('show', show);
+    btn.classList.toggle('active', show);
+    if (show) { for (const k in keys) keys[k] = false; }
+  }
+  window.togglePauseMenu = togglePauseMenu;
+
+  function exitGame() {
+    document.getElementById('pauseMenuOverlay').classList.remove('show');
+    document.getElementById('pauseBtn').classList.remove('active');
+    document.getElementById('canvas').style.display = 'none';
+    document.getElementById('titleScreen').classList.remove('hidden');
+    for (const k in keys) keys[k] = false;
+  }
+  window.exitGame = exitGame;
+
   function buildSetBlockList() {
     const list = document.getElementById('setBlockList');
     list.innerHTML = '';
@@ -3857,10 +4293,12 @@ window.addEventListener("load", function() {
   const savedName = localStorage.getItem('mc2d_playerName');
   if (savedName) nameInput.value = savedName;
 
-  window.startGameFromTitle = function() {
-    const name = nameInput.value.trim() || 'Steve';
+  window.startGameFromTitle = function(mode) {
+    const name = nameInput.value.trim() || 'Unnamed';
     localStorage.setItem('mc2d_playerName', name);
     window.playerName = name;
+    window.gameMode = mode || window.gameMode || 'survival';
+    localStorage.setItem('mc2d_gameMode', window.gameMode);
     document.getElementById('titleScreen').classList.add('hidden');
     document.getElementById('canvas').style.display = 'block';
   };
@@ -3968,12 +4406,466 @@ window.addEventListener("load", function() {
 
     // Stop when game starts
     const origStart = window.startGameFromTitle;
-    window.startGameFromTitle = function() {
+    window.startGameFromTitle = function(mode) {
       running = false;
-      if (origStart) origStart();
+      if (origStart) origStart(mode);
     };
   })();
 })();
 </script>
 
 
+<!-- MULTIPLAYER SCRIPT (PeerJS WebRTC P2P) -->
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script>
+(function() {
+  var mpPeer = null;
+  var mpRole = null;
+  var mpRoomCode = null;
+  var mpConnections = {};
+  var mpHostConn = null;
+  var mpPlayers = {};
+  var mpMyId = null;
+  if (!window.mpRemotePlayers) window.mpRemotePlayers = {};
+
+  function setStatus(msg, color) {
+    var el = document.getElementById('multiStatus');
+    if (!el) return;
+    el.textContent = msg;
+    el.style.color = color || '#9dff9d';
+  }
+
+  function renderPlayerList() {
+    var list = document.getElementById('multiPlayerList');
+    if (!list) return;
+    list.innerHTML = '';
+    var myName = window.playerName || 'Unnamed';
+    var meEl = document.createElement('div'); meEl.className = 'mPlayerEntry';
+    meEl.innerHTML = '<div class="mPlayerDot host"></div><span>⭐ ' + myName + ' (you' + (mpRole==='host' ? ' • host' : '') + ')</span>';
+    list.appendChild(meEl);
+    Object.values(mpPlayers).forEach(function(p) {
+      var div = document.createElement('div'); div.className = 'mPlayerEntry';
+      div.innerHTML = '<div class="mPlayerDot"></div><span>● ' + (p.name || 'Unnamed') + '</span>';
+      list.appendChild(div);
+    });
+    document.getElementById('mDivider2').style.display = 'block';
+    document.getElementById('mPlayersLabel').style.display = 'block';
+  }
+
+  window.openMultiLobby = function(mode) {
+    window._mpLobbyMode = mode || 'survival';
+    var modeLabel = window._mpLobbyMode === 'creative' ? 'CREATIVE' : 'SURVIVAL';
+    var titleEl = document.getElementById('multiLobbyTitle');
+    if (titleEl) titleEl.textContent = '🌐 ' + modeLabel + ' MULTIPLAYER';
+    document.getElementById('multiLobby').classList.add('show');
+    setStatus('Choose an option below');
+  };
+  window.closeMultiLobby = function() {
+    document.getElementById('multiLobby').classList.remove('show');
+    multiCleanup();
+  };
+
+  function multiCleanup() {
+    if (mpPeer && !mpPeer.destroyed) { try { mpPeer.destroy(); } catch(e){} }
+    mpPeer = null; mpRole = null; mpRoomCode = null;
+    mpConnections = {}; mpHostConn = null; mpPlayers = {}; mpMyId = null;
+    var rc = document.getElementById('multiRoomCode');
+    if (rc) { rc.style.display = 'none'; rc.textContent = ''; }
+    var js = document.getElementById('mJoinSection');
+    if (js) js.style.display = 'none';
+    var sb = document.getElementById('mStartBtn');
+    if (sb) sb.style.display = 'none';
+    var pl = document.getElementById('multiPlayerList');
+    if (pl) pl.innerHTML = '';
+    document.getElementById('mDivider2').style.display = 'none';
+    document.getElementById('mPlayersLabel').style.display = 'none';
+    document.getElementById('mHostBtn').style.display = '';
+    document.getElementById('mJoinBtn').style.display = '';
+    var ji = document.getElementById('multiJoinInput');
+    if (ji) ji.value = '';
+    setStatus('Choose an option below');
+  }
+
+  function genCode() {
+    var chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    var code = '';
+    for (var i = 0; i < 6; i++) code += chars[Math.floor(Math.random() * chars.length)];
+    return code;
+  }
+
+  window.multiHost = function() {
+    if (typeof Peer === 'undefined') {
+      setStatus('⚠ Multiplayer unavailable (network blocked)', '#ff8080');
+      return;
+    }
+    var name = (document.getElementById('playerNameInput').value.trim()) || 'Unnamed';
+    window.playerName = name;
+    mpRole = 'host';
+    mpRoomCode = genCode();
+    setStatus('⏳ Creating room...', '#c8a060');
+    document.getElementById('mHostBtn').style.display = 'none';
+    document.getElementById('mJoinBtn').style.display = 'none';
+
+    mpPeer = new Peer('mc2d-' + mpRoomCode, { host: '0.peerjs.com', port: 443, secure: true, path: '/' });
+
+    mpPeer.on('open', function(id) {
+      mpMyId = id;
+      setStatus('✅ Room created! Share the code.', '#9dff9d');
+      var codeEl = document.getElementById('multiRoomCode');
+      codeEl.textContent = mpRoomCode;
+      codeEl.style.display = 'block';
+      document.getElementById('mStartBtn').style.display = 'block';
+      renderPlayerList();
+    });
+
+    mpPeer.on('error', function(err) {
+      if (err.type === 'unavailable-id') {
+        mpRoomCode = genCode();
+        setStatus('⏳ Trying another code...', '#c8a060');
+        setTimeout(function() { window.multiHost(); }, 500);
+      } else {
+        setStatus('❌ Error: ' + err.message, '#ff8080');
+        document.getElementById('mHostBtn').style.display = '';
+        document.getElementById('mJoinBtn').style.display = '';
+      }
+    });
+
+    mpPeer.on('connection', function(conn) {
+      conn.on('open', function() {
+        mpConnections[conn.peer] = conn;
+        conn.send({ type: 'welcome', players: Object.values(mpPlayers), hostName: window.playerName || 'Unnamed', gameStarted: !!window.mpActive });
+        renderPlayerList();
+      });
+      conn.on('data', function(data) { handleHostReceive(conn.peer, data); });
+      conn.on('close', function() {
+        delete mpConnections[conn.peer];
+        delete mpPlayers[conn.peer];
+        delete window.mpRemotePlayers[conn.peer];
+        renderPlayerList();
+        broadcastAll({ type: 'playerLeave', peerId: conn.peer });
+      });
+    });
+  };
+
+  function handleHostReceive(peerId, data) {
+    if (data.type === 'hello') {
+      mpPlayers[peerId] = { peerId: peerId, name: data.name, x: 0, y: 0, dir: 1, item: 0 };
+      renderPlayerList();
+      broadcastExcept(peerId, { type: 'playerJoin', player: mpPlayers[peerId] });
+      var others = Object.values(mpPlayers).filter(function(p){ return p.peerId !== peerId; });
+      if (mpConnections[peerId]) mpConnections[peerId].send({ type: 'existingPlayers', players: others });
+      // If game already running, tell them to start
+      if (window.mpActive && mpConnections[peerId]) {
+        mpConnections[peerId].send({ type: 'startGame', seed: window.mpWorldSeed || 0 });
+      }
+    } else if (data.type === 'pos') {
+      if (mpPlayers[peerId]) {
+        Object.assign(mpPlayers[peerId], { x: data.x, y: data.y, dir: data.dir, item: data.item, headAngle: data.headAngle, swingAngle: data.swingAngle });
+      }
+      broadcastExcept(peerId, Object.assign({ type: 'pos', peerId: peerId }, data));
+      // Also update remote players for host's render
+      window.mpRemotePlayers[peerId] = {
+        name: mpPlayers[peerId] ? mpPlayers[peerId].name : '?',
+        x: data.x, y: data.y, dir: data.dir, item: data.item,
+        headAngle: data.headAngle || 0, swingAngle: data.swingAngle || 0,
+        ts: Date.now()
+      };
+    }
+  }
+
+  function broadcastAll(msg) {
+    Object.values(mpConnections).forEach(function(c) { try { c.send(msg); } catch(e){} });
+  }
+  function broadcastExcept(excludeId, msg) {
+    Object.keys(mpConnections).forEach(function(pid) {
+      if (pid !== excludeId) try { mpConnections[pid].send(msg); } catch(e){}
+    });
+  }
+
+  window.multiShowJoin = function() {
+    document.getElementById('mJoinSection').style.display = 'flex';
+    setTimeout(function(){ document.getElementById('multiJoinInput').focus(); }, 50);
+  };
+
+  window.multiDoJoin = function() {
+    if (typeof Peer === 'undefined') {
+      setStatus('⚠ Multiplayer unavailable (network blocked)', '#ff8080');
+      return;
+    }
+    var code = document.getElementById('multiJoinInput').value.trim().toUpperCase();
+    if (code.length !== 6) { setStatus('❌ Code must be 6 characters!', '#ff8080'); return; }
+    var name = (document.getElementById('playerNameInput').value.trim()) || 'Unnamed';
+    window.playerName = name;
+    mpRole = 'client';
+    mpRoomCode = code;
+    setStatus('⏳ Joining room ' + code + '...', '#c8a060');
+    document.getElementById('mHostBtn').style.display = 'none';
+    document.getElementById('mJoinBtn').style.display = 'none';
+
+    mpPeer = new Peer({ host: '0.peerjs.com', port: 443, secure: true, path: '/' });
+
+    mpPeer.on('open', function() {
+      var conn = mpPeer.connect('mc2d-' + code, { reliable: false });
+      mpHostConn = conn;
+      conn.on('open', function() {
+        conn.send({ type: 'hello', name: name });
+        setStatus('✅ Connected! Waiting for host to start.', '#9dff9d');
+      });
+      conn.on('data', function(data) { handleClientReceive(data); });
+      conn.on('close', function() {
+        setStatus('❌ Connection lost.', '#ff8080');
+        mpHostConn = null;
+      });
+    });
+
+    mpPeer.on('error', function(err) {
+      if (err.type === 'peer-unavailable') {
+        setStatus('❌ Room "' + code + '" does not exist!', '#ff8080');
+      } else {
+        setStatus('❌ Error: ' + err.type, '#ff8080');
+      }
+      document.getElementById('mHostBtn').style.display = '';
+      document.getElementById('mJoinBtn').style.display = '';
+    });
+  };
+
+  function handleClientReceive(data) {
+    if (data.type === 'welcome') {
+      mpPlayers = {};
+      (data.players || []).forEach(function(p) { if (p && p.peerId) mpPlayers[p.peerId] = p; });
+      mpPlayers['__host__'] = { name: data.hostName || 'Host', isHost: true };
+      renderPlayerList();
+      if (data.gameStarted) { closeMultiLobby(); startMultiGame(0); }
+    } else if (data.type === 'existingPlayers') {
+      (data.players || []).forEach(function(p) { if (p && p.peerId) mpPlayers[p.peerId] = p; });
+      renderPlayerList();
+    } else if (data.type === 'playerJoin') {
+      if (data.player && data.player.peerId) {
+        mpPlayers[data.player.peerId] = data.player;
+        renderPlayerList();
+      }
+    } else if (data.type === 'playerLeave') {
+      delete mpPlayers[data.peerId];
+      delete window.mpRemotePlayers[data.peerId];
+      renderPlayerList();
+    } else if (data.type === 'startGame') {
+      closeMultiLobby();
+      startMultiGame(data.seed);
+    } else if (data.type === 'pos') {
+      var pName = mpPlayers[data.peerId] ? mpPlayers[data.peerId].name : '?';
+      window.mpRemotePlayers[data.peerId] = {
+        name: pName,
+        x: data.x, y: data.y, dir: data.dir, item: data.item,
+        headAngle: data.headAngle || 0, swingAngle: data.swingAngle || 0,
+        ts: Date.now()
+      };
+    }
+  }
+
+  window.multiStartGame = function() {
+    if (mpRole !== 'host') return;
+    var seed = Math.floor(Math.random() * 999999);
+    window.mpWorldSeed = seed;
+    broadcastAll({ type: 'startGame', seed: seed });
+    closeMultiLobby();
+    startMultiGame(seed);
+  };
+
+  function startMultiGame(seed) {
+    window.mpWorldSeed = seed;
+    window.mpActive = true;
+    window.mpRole = mpRole;
+    startGameFromTitle(window._mpLobbyMode || 'survival');
+    setTimeout(startPositionBroadcast, 1000);
+  }
+
+  function startPositionBroadcast() {
+    if (!window.mpActive) return;
+    (function loop() {
+      if (!window.mpActive) return;
+      sendMyPosition();
+      setTimeout(loop, 80);
+    })();
+  }
+
+  function sendMyPosition() {
+    if (!window.player) return;
+    var msg = {
+      type: 'pos',
+      x: window.player.x,
+      y: window.player.y,
+      dir: (window.playerFacingRight !== false) ? 1 : -1,
+      item: window.selectedBlock || 0,
+      headAngle: window._mpHeadAngle || 0,
+      swingAngle: window._mpSwingAngle || 0
+    };
+    if (mpRole === 'host') {
+      broadcastAll(msg);
+    } else if (mpHostConn && mpHostConn.open) {
+      try { mpHostConn.send(msg); } catch(e){}
+    }
+  }
+
+  document.addEventListener('keydown', function(e) {
+    if (document.getElementById('multiLobby').classList.contains('show') && e.key === 'Enter') {
+      if (document.getElementById('mJoinSection').style.display !== 'none') multiDoJoin();
+    }
+  });
+
+  // ── Survival player count via PeerJS ──────────────────
+  // Counts only people who are actually IN the survival game right now.
+  // Title-screen visitors connect as "watchers" (they see the count but
+  // are not counted themselves). Once someone presses SURVIVAL they
+  // become a "player" connection and get included in the count.
+  // First peer to arrive becomes the lobby host; everyone else connects to it.
+  (function() {
+    var LOBBY_HOST_ID = 'mc2d-survivalcount-v1';
+    var lobbyPeer = null;          // our own peer (host OR client)
+    var lobbyConns = {};           // host side: peerId → { conn, role: 'player'|'watcher' }
+    var lobbyHostConn = null;      // client side: connection to the host
+    var isLobbyHost = false;
+    var myRole = 'watcher';        // 'watcher' while on title screen, 'player' while in survival
+
+    function setCount(n) {
+      document.querySelectorAll('.modeRoomNum').forEach(function(el) { el.textContent = n; });
+    }
+
+    function playerCountFromConns() {
+      var n = (myRole === 'player') ? 1 : 0;
+      Object.keys(lobbyConns).forEach(function(id) {
+        if (lobbyConns[id].role === 'player') n++;
+      });
+      return n;
+    }
+
+    function broadcastCount() {
+      var n = playerCountFromConns();
+      setCount(n);
+      Object.keys(lobbyConns).forEach(function(id) {
+        try { lobbyConns[id].conn.send({ type: 'count', n: n }); } catch(e) {}
+      });
+    }
+
+    function becomeHost() {
+      isLobbyHost = true;
+      lobbyPeer = new Peer(LOBBY_HOST_ID, { host: '0.peerjs.com', port: 443, secure: true, path: '/' });
+      lobbyPeer.on('open', function() {
+        broadcastCount();
+      });
+      lobbyPeer.on('connection', function(conn) {
+        conn.on('open', function() {
+          lobbyConns[conn.peer] = { conn: conn, role: 'watcher' };
+          conn.send({ type: 'count', n: playerCountFromConns() });
+        });
+        conn.on('data', function(data) {
+          if (data && data.type === 'role' && lobbyConns[conn.peer]) {
+            lobbyConns[conn.peer].role = data.role;
+            broadcastCount();
+          }
+        });
+        conn.on('close', function() {
+          delete lobbyConns[conn.peer];
+          broadcastCount();
+        });
+        conn.on('error', function() {
+          delete lobbyConns[conn.peer];
+          broadcastCount();
+        });
+      });
+      lobbyPeer.on('error', function() { /* already handled below */ });
+    }
+
+    function sendRole() {
+      if (lobbyHostConn) {
+        try { lobbyHostConn.send({ type: 'role', role: myRole }); } catch(e) {}
+      }
+    }
+
+    function becomeClient() {
+      lobbyPeer = new Peer({ host: '0.peerjs.com', port: 443, secure: true, path: '/' });
+      lobbyPeer.on('open', function() {
+        var conn = lobbyPeer.connect(LOBBY_HOST_ID, { reliable: false });
+        lobbyHostConn = conn;
+        conn.on('open', function() { sendRole(); });
+        conn.on('data', function(data) {
+          if (data && data.type === 'count') setCount(data.n);
+        });
+        conn.on('close', function() {
+          // Host went away — try to become host after small delay
+          lobbyHostConn = null;
+          if (lobbyPeer && !lobbyPeer.destroyed) { try { lobbyPeer.destroy(); } catch(e){} }
+          lobbyPeer = null;
+          setTimeout(tryInit, 2000 + Math.random() * 1000);
+        });
+        conn.on('error', function() {
+          if (lobbyPeer && !lobbyPeer.destroyed) { try { lobbyPeer.destroy(); } catch(e){} }
+          lobbyPeer = null;
+          setTimeout(tryInit, 3000 + Math.random() * 1000);
+        });
+      });
+      lobbyPeer.on('error', function() {
+        if (lobbyPeer && !lobbyPeer.destroyed) { try { lobbyPeer.destroy(); } catch(e){} }
+        lobbyPeer = null;
+        setTimeout(tryInit, 3000 + Math.random() * 1000);
+      });
+    }
+
+    function tryInit() {
+      if (typeof Peer === 'undefined') {
+        // PeerJS failed to load (network blocked / offline) — show 0, don't crash
+        setCount(0);
+        return;
+      }
+      // Try to become host; if ID taken → become client
+      var testPeer = new Peer(LOBBY_HOST_ID, { host: '0.peerjs.com', port: 443, secure: true, path: '/' });
+      testPeer.on('open', function() {
+        // We got the host ID — destroy testPeer and become real host
+        testPeer.destroy();
+        setTimeout(becomeHost, 300);
+      });
+      testPeer.on('error', function(err) {
+        testPeer.destroy();
+        if (err.type === 'unavailable-id') {
+          // Host exists — join as client
+          becomeClient();
+        } else {
+          // Network error — retry later
+          setTimeout(tryInit, 5000);
+        }
+      });
+    }
+
+    // Always connect (as a watcher) so the title screen shows a live count.
+    setTimeout(tryInit, 800 + Math.random() * 500);
+
+    // When the player actually enters SURVIVAL, flip our role to "player"
+    // so we get included in the live count.
+    var origStart = window.startGameFromTitle;
+    window.startGameFromTitle = function(mode) {
+      if ((mode || window.gameMode) === 'survival') {
+        myRole = 'player';
+        if (isLobbyHost) {
+          broadcastCount();
+        } else {
+          sendRole();
+        }
+      }
+      if (origStart) origStart(mode);
+    };
+
+    // When the player exits back to the title screen, flip back to watcher
+    // so they stop being counted as an active survival player.
+    var origExit = window.exitGame;
+    window.exitGame = function() {
+      myRole = 'watcher';
+      if (isLobbyHost) {
+        broadcastCount();
+      } else {
+        sendRole();
+      }
+      if (origExit) origExit();
+    };
+  })();
+
+})();
+</script>
