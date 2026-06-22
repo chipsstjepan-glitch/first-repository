@@ -4859,10 +4859,14 @@ window.addEventListener("load", function() {
   function friendsPanelTick() {
     var panel = document.getElementById('friendsPanel');
     if (!panel) return;
+    // Prikaži debug info uvijek dok je igra aktivna
+    var gameCanvas = document.getElementById('canvas');
+    var gameVisible = gameCanvas && gameCanvas.style.display !== 'none';
+    if (!gameVisible) { panel.classList.remove('show'); panel.innerHTML = ''; return; }
     var hasMP = window.mpActive && window.mpRemotePlayers;
     if (!hasMP) {
-      panel.classList.remove('show');
-      panel.innerHTML = '';
+      panel.innerHTML = '<div style="color:#ff8080;font-size:10px;">MP: ' + (window.mpActive ? 'active' : 'inactive') + '</div>';
+      panel.classList.add('show');
       return;
     }
     var now = Date.now();
