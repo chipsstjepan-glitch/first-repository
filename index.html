@@ -159,7 +159,7 @@
     padding: 0 20px; text-align: center;
     animation: titleFadeUp 0.5s ease-out;
   }
-  #titleBox .titleField, #titleBox .modeBtn { pointer-events: auto; }
+  #titleBox .titleField, #titleBox .modeBtn, #titleBox .modePlusBtn { pointer-events: auto; }
   #titleEmoji { font-size: 30px; display: block; }
   #titleBox h1 {
     display: block; font-size: clamp(26px, 5vw, 42px); color: #9dff9d;
@@ -4439,6 +4439,23 @@ window.addEventListener("load", function() {
 })();
 </script>
 
+
+<!-- Fallback: ensure + button always opens lobby overlay even if PeerJS fails to load -->
+<script>
+  window.openMultiLobby = function(mode) {
+    var lobby = document.getElementById('multiLobby');
+    if (!lobby) return;
+    var titleEl = document.getElementById('multiLobbyTitle');
+    if (titleEl) titleEl.textContent = '🌐 ' + (mode === 'creative' ? 'CREATIVE' : 'SURVIVAL') + ' MULTIPLAYER';
+    lobby.classList.add('show');
+    var statusEl = document.getElementById('multiStatus');
+    if (statusEl) { statusEl.textContent = 'Choose an option below'; statusEl.style.color = '#9dff9d'; }
+  };
+  window.closeMultiLobby = function() {
+    var lobby = document.getElementById('multiLobby');
+    if (lobby) lobby.classList.remove('show');
+  };
+</script>
 
 <!-- MULTIPLAYER SCRIPT (PeerJS WebRTC P2P) -->
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
