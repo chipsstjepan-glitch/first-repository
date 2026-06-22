@@ -2280,73 +2280,83 @@ function render() {
       // Pozicija na ekranu (isti koordinatni sistem kao lokalni player)
       const rpx = Math.floor((rp.x - camX) * TILE * zoom);
       const rpy = Math.floor((rp.y - camY) * TILE * zoom);
-      const rpw = ts; // širina
-      const rph = Math.ceil(ts * 1.8); // visina (player visina ≈ 1.8 bloka)
-      const headS = Math.ceil(rpw * 0.85);
-      const bodyH = Math.ceil(rph * 0.38);
-      const legsH = Math.ceil(rph * 0.34);
-      const slimW = Math.ceil(rpw * 0.55);
+      const rpw = Math.ceil(player.w * TILE * zoom);
+      const rph = Math.ceil(player.h * TILE * zoom);
+      // Isti omjeri kao lokalni igrač
+      const headS = Math.floor(rph / 4);
+      const bodyH = Math.floor(headS * 1.5);
+      const legsH = rph - headS - bodyH;
+      const slimW = Math.floor(headS * 0.5);
       const slimX = rpx + Math.floor((rpw - slimW) / 2);
-      const swing = Math.sin(now * 0.005) * 0.3;
+      const swing = rp.swingAngle !== undefined ? rp.swingAngle : Math.sin(now * 0.005) * 0.3;
       const facingLeft = rp.dir < 0;
+      const limbCX = slimX + slimW / 2;
+
+      // Helper za crtanje uda s teksturom (isti kao lokalni igrač)
+      function drawRpLimb(image, fallbackColor, topY, h, angle, darkOverlay) {
+        ctx.save();
+        ctx.translate(limbCX, topY);
+        ctx.rotate(angle);
+        if (image) {
+          ctx.drawImage(image, -slimW/2, 0, slimW, h);
+          if (darkOverlay) {
+            ctx.fillStyle = 'rgba(0,0,0,0.35)';
+            ctx.fillRect(-slimW/2, 0, slimW, h);
+          }
+        } else {
+          ctx.fillStyle = fallbackColor;
+          ctx.fillRect(-slimW/2, 0, slimW, h);
+        }
+        ctx.restore();
+      }
 
       ctx.save();
       if (facingLeft) {
-        ctx.translate(rpx + rpw, rpy);
+        ctx.translate(2 * (rpx + rpw / 2), 0);
         ctx.scale(-1, 1);
-        ctx.translate(-rpx, -rpy);
       }
 
+      // Ruka iza (suprotan swing)
+      drawRpLimb(armImage, '#2a5ba5', rpy + headS, bodyH, -swing, true);
+
       // Tijelo
-      ctx.fillStyle = '#3a7bd5';
-      ctx.fillRect(slimX, rpy + headS, slimW, bodyH);
+      if (bodyImage) {
+        ctx.drawImage(bodyImage, slimX, rpy + headS, slimW, bodyH);
+      } else {
+        ctx.fillStyle = '#3a7bd5';
+        ctx.fillRect(slimX, rpy + headS, slimW, bodyH);
+      }
 
-      // Ruke
-      const armW = Math.ceil(rpw * 0.18);
-      ctx.fillStyle = '#2a5ba5';
-      // lijeva ruka (iza)
-      ctx.save();
-      ctx.translate(slimX - armW/2, rpy + headS + bodyH * 0.05);
-      ctx.rotate(-swing);
-      ctx.fillRect(-armW/2, 0, armW, bodyH);
-      ctx.restore();
-      // desna ruka
-      ctx.save();
-      ctx.translate(slimX + slimW + armW/2, rpy + headS + bodyH * 0.05);
-      ctx.rotate(swing);
-      ctx.fillRect(-armW/2, 0, armW, bodyH);
-      ctx.restore();
+      // Prednja ruka
+      drawRpLimb(armImage, '#3a7bd5', rpy + headS, bodyH, swing, false);
 
-      // Noge
-      const legW = Math.ceil(slimW * 0.45);
-      ctx.fillStyle = '#1a3a75';
-      ctx.save();
-      ctx.translate(slimX + legW * 0.5, rpy + headS + bodyH);
-      ctx.rotate(swing);
-      ctx.fillRect(-legW/2, 0, legW, legsH);
-      ctx.restore();
-      ctx.fillStyle = '#2a5ba5';
-      ctx.save();
-      ctx.translate(slimX + slimW - legW * 0.5, rpy + headS + bodyH);
-      ctx.rotate(-swing);
-      ctx.fillRect(-legW/2, 0, legW, legsH);
-      ctx.restore();
+      // Stražnja noga
+      drawRpLimb(legsImage, '#1a3a75', rpy + headS + bodyH, legsH, swing, true);
+      // Prednja noga
+      drawRpLimb(legsImage, '#2a5ba5', rpy + headS + bodyH, legsH, -swing, false);
+
+      ctx.restore(); // facingLeft flip
 
       // Glava
       const headCX = rpx + rpw / 2;
       const headBotY = rpy + headS;
-      const hAngle = Math.max(-0.6, Math.min(0.6, rp.headAngle || 0));
+      const hAngle = Math.max(-Math.PI * 0.44, Math.min(Math.PI * 0.44, rp.headAngle || 0));
       ctx.save();
       ctx.translate(headCX, headBotY);
+      if (facingLeft) ctx.scale(-1, 1);
       ctx.rotate(hAngle);
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+      ctx.save();
+      ctx.scale(-1, 1);
       ctx.fillStyle = '#f5cba7';
       ctx.fillRect(-headS/2, -headS, headS, headS);
       ctx.fillStyle = '#111';
       ctx.fillRect(-headS/2+Math.floor(headS*.2),-headS+Math.floor(headS*.25),Math.max(2,Math.floor(headS*.18)),Math.max(2,Math.floor(headS*.18)));
       ctx.fillRect(-headS/2+Math.floor(headS*.58),-headS+Math.floor(headS*.25),Math.max(2,Math.floor(headS*.18)),Math.max(2,Math.floor(headS*.18)));
       ctx.restore();
-
-      ctx.restore(); // facingLeft flip
+      ctx.imageSmoothingEnabled = false;
+      ctx.restore();
 
       // Ime igrača
       const nameFSize = Math.max(9, Math.floor(rpw * 0.38));
