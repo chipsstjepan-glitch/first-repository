@@ -37,6 +37,12 @@
   #canvas { position: fixed; top: 0; left: 0; display: none; image-rendering: pixelated; cursor: crosshair; }
   #info { display: none; }
   #coords { position: fixed; top: 8px; left: 10px; font-size: 12px; color: #7ec8e3; z-index: 10; text-shadow: 1px 1px #000; }
+  #friendsPanel { position: fixed; top: 44px; right: 10px; z-index: 19; background: rgba(0,0,0,0.7); border: 2px solid #555; border-radius: 4px; padding: 6px 8px; font-family: 'Courier New', monospace; font-size: 11px; color: #fff; max-width: 200px; pointer-events: none; display: none; }
+  #friendsPanel.show { display: block; }
+  #friendsPanel .friendRow { display: flex; align-items: center; gap: 5px; padding: 2px 0; white-space: nowrap; }
+  #friendsPanel .friendArrow { display: inline-block; color: #ffe680; font-size: 13px; flex-shrink: 0; }
+  #friendsPanel .friendName { color: #ffff88; font-weight: bold; }
+  #friendsPanel .friendCoords { color: #9dff9d; }
   .joystick-zone { position: fixed; bottom: var(--joy-bottom); width: var(--joy-size); height: var(--joy-size); z-index: 20; border-radius: 50%; background: rgba(255,255,255,0.08); border: 2px solid rgba(255,255,255,0.18); touch-action: none; }
   #joystick-left { left: 20px; }
   #joystick-right { right: 20px; background: rgba(255,60,60,0.15); border: 2px solid rgba(255,120,120,0.5); }
@@ -477,6 +483,7 @@
 </div>
 <h1>⛏ Nature Craft 2D</h1>
 <div id="coords">X: 0 Y: 0</div>
+<div id="friendsPanel"></div>
 <button id="pauseBtn" onclick="togglePauseMenu()" title="Menu" style="position:fixed;top:8px;left:10px;z-index:20;">☰</button>
 <div id="pauseMenuOverlay">
   <div id="pauseMenuBox">
@@ -4825,6 +4832,47 @@ window.addEventListener("load", function() {
     el.textContent = lines.join('\n');
   }
   setInterval(mpDebugTick, 400);
+
+  // ── Panel: koordinate i smjer gledanja prijatelja (gore desno) ──────────
+  function degreesFor(dirVal, headAngle) {
+    // dirVal: 1 = gleda desno, -1 = gleda lijevo (osnovni smjer tijela)
+    // headAngle: dodatni kut glave gore/dolje (radijani, ~ -0.6 do 0.6)
+    // 0° = desno, 90° = gore, 180° = lijevo, 270°/-90° = dolje (standardni krug)
+    var ha = headAngle || 0;
+    var baseRight = dirVal >= 0;
+    var deg = baseRight ? -ha * (180 / Math.PI) : 180 + ha * (180 / Math.PI);
+    deg = Math.round(deg);
+    deg = ((deg % 360) + 360) % 360; // normaliziraj na 0-359
+    return deg;
+  }
+
+  function friendsPanelTick() {
+    var panel = document.getElementById('friendsPanel');
+    if (!panel) return;
+    if (!window.mpActive || !window.mpRemotePlayers) {
+      panel.classList.remove('show');
+      panel.innerHTML = '';
+      return;
+    }
+    var now = Date.now();
+    var entries = Object.values(window.mpRemotePlayers).filter(function(rp) {
+      return rp && now - (rp.ts || 0) <= 5000;
+    });
+    if (entries.length === 0) {
+      panel.classList.remove('show');
+      panel.innerHTML = '';
+      return;
+    }
+    var html = entries.map(function(rp) {
+      var fx = Math.floor(rp.x || 0), fy = Math.floor(rp.y || 0);
+      var deg = degreesFor(rp.dir, rp.headAngle);
+      var safeName = (rp.name || '?').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      return '<div class="friendRow"><span class="friendArrow">' + deg + '°</span><span class="friendName">' + safeName + '</span><span class="friendCoords">' + fx + ', ' + fy + '</span></div>';
+    }).join('');
+    panel.innerHTML = html;
+    panel.classList.add('show');
+  }
+  setInterval(friendsPanelTick, 200);
 
   document.addEventListener('keydown', function(e) {
     if (document.getElementById('multiLobby').classList.contains('show') && e.key === 'Enter') {
