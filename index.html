@@ -2632,7 +2632,7 @@ canvas.addEventListener('click',e=>{
       const nextToSolid=adj.some(a=>a.x>=0&&a.x<WORLD_W&&a.y>=0&&a.y<WORLD_H&&(
         (worldBg[a.x][a.y]!==AIR)||(world[a.x][a.y]!==AIR&&world[a.x][a.y]!==CLOUD&&world[a.x][a.y]!==WATER)
       ));
-      if(nextToSolid && selectedBlock !== AIR && !isTool(selectedBlock) && (inventory[selectedBlock] > 0)) { worldBg[tx][ty]=selectedBlock; markLightDirty(); useFromInventory(selectedBlock); }
+      if(nextToSolid && selectedBlock !== AIR && !isTool(selectedBlock) && (inventory[selectedBlock] > 0)) { worldBg[tx][ty]=selectedBlock; markLightDirty(); useFromInventory(selectedBlock); if (window.mpNotifyBlockChange) window.mpNotifyBlockChange(tx, ty, true, selectedBlock); }
     }
     return;
   }
@@ -2650,6 +2650,7 @@ canvas.addEventListener('click',e=>{
         if(selectedBlock===WATER){if(!waterDist[tx])waterDist[tx]=new Array(WORLD_H).fill(99);waterDist[tx][ty]=0;}
         if(selectedBlock===LAVA){if(!lavaDist[tx])lavaDist[tx]=new Array(WORLD_H).fill(99);lavaDist[tx][ty]=0;}
         useFromInventory(selectedBlock);
+        if (window.mpNotifyBlockChange) window.mpNotifyBlockChange(tx, ty, false, selectedBlock);
       }
   }
 });
@@ -2693,8 +2694,8 @@ canvas.addEventListener('mousedown', e => {
     const hard = BLOCK_HARDNESS[blockType] ?? 3.0;
     if (hard === 0) {
       // Trenutno razbijanje
-      if (isBg) { worldBg[p.x][p.y] = AIR; markLightDirty(); }
-      else { world[p.x][p.y]=AIR; markLightDirty(); }
+      if (isBg) { worldBg[p.x][p.y] = AIR; markLightDirty(); if (window.mpNotifyBlockChange) window.mpNotifyBlockChange(p.x, p.y, true, AIR); }
+      else { world[p.x][p.y]=AIR; markLightDirty(); if (window.mpNotifyBlockChange) window.mpNotifyBlockChange(p.x, p.y, false, AIR); }
       return;
     }
     breakTarget = {x: p.x, y: p.y, isBg};
@@ -2879,7 +2880,7 @@ function resize(){
   r.style.setProperty('--craft-icon', Math.round(32 * s) + 'px');
 }
 window.addEventListener('resize',resize);
-resize(); generateWorld(); buildHotbar();
+resize(); generateWorld(12345); buildHotbar();
 
 let waterTick = 0;
 function updateWater() {
@@ -3075,8 +3076,8 @@ function loop(){
       if (hard > 0) {
         breakProgress = Math.min(1, (performance.now() - breakStartTime) / (hard * 1000 / pickSpeed()));
         if (breakProgress >= 1) {
-          if (isBg) { addToInventory(worldBg[bx][by]); worldBg[bx][by] = AIR; markLightDirty(); }
-          else { addToInventory(world[bx][by]); world[bx][by]=AIR; markLightDirty(); }
+          if (isBg) { addToInventory(worldBg[bx][by]); worldBg[bx][by] = AIR; markLightDirty(); if (window.mpNotifyBlockChange) window.mpNotifyBlockChange(bx, by, true, AIR); }
+          else { addToInventory(world[bx][by]); world[bx][by]=AIR; markLightDirty(); if (window.mpNotifyBlockChange) window.mpNotifyBlockChange(bx, by, false, AIR); }
           isMouseBreaking = false; isJoyBreaking = false; breakTarget = null; breakProgress = 0;
         }
       }
@@ -3236,8 +3237,8 @@ document.addEventListener('keydown',e=>{ if(e.code==='KeyB' && document.getEleme
           const hard = BLOCK_HARDNESS[targetW] ?? 3.0;
           if (hard === 0) {
             if (!breakTarget || breakTarget.x !== bx || breakTarget.y !== by) {
-              if (bgMode) { addToInventory(worldBg[bx][by]); worldBg[bx][by] = AIR; markLightDirty(); }
-              else { addToInventory(world[bx][by]); world[bx][by] = AIR; markLightDirty(); }
+              if (bgMode) { addToInventory(worldBg[bx][by]); worldBg[bx][by] = AIR; markLightDirty(); if (window.mpNotifyBlockChange) window.mpNotifyBlockChange(bx, by, true, AIR); }
+              else { addToInventory(world[bx][by]); world[bx][by] = AIR; markLightDirty(); if (window.mpNotifyBlockChange) window.mpNotifyBlockChange(bx, by, false, AIR); }
               breakTarget = null; joystickTargetBlock = null;
             }
           } else {
@@ -4455,6 +4456,31 @@ window.addEventListener("load", function() {
   var mpMyId = null;
   if (!window.mpRemotePlayers) window.mpRemotePlayers = {};
 
+  // ── Sinkronizacija promjena blokova (postavljanje/razbijanje) ──────────
+  // Kad lokalni igrač promijeni svijet (postavi ili razbije blok), ova funkcija
+  // se zove da se ta promjena pošalje ostalim igračima preko mreže.
+  // isBg=true znači pozadinski sloj (worldBg), inače prednji sloj (world).
+  window.mpNotifyBlockChange = function(x, y, isBg, value) {
+    if (!window.mpActive) return; // nismo u multiplayeru — ništa za slati
+    var msg = { type: 'blockChange', x: x, y: y, bg: !!isBg, v: value };
+    if (mpRole === 'host') {
+      broadcastAll(msg);
+    } else if (mpHostConn && mpHostConn.open) {
+      try { mpHostConn.send(msg); } catch(e) {}
+    }
+  };
+
+  // Primijeni promjenu bloka koja je stigla s mreže.
+  function applyRemoteBlockChange(x, y, isBg, value) {
+    if (x < 0 || x >= WORLD_W || y < 0 || y >= WORLD_H) return;
+    if (isBg) {
+      if (worldBg[x]) worldBg[x][y] = value;
+    } else {
+      if (world[x]) world[x][y] = value;
+    }
+    if (typeof markLightDirty === 'function') markLightDirty();
+  }
+
   function setStatus(msg, color) {
     var el = document.getElementById('multiStatus');
     if (!el) return;
@@ -4591,20 +4617,25 @@ window.addEventListener("load", function() {
       if (mpConnections[peerId]) mpConnections[peerId].send({ type: 'existingPlayers', players: others });
       // If game already running, tell them to start
       if (window.mpActive && mpConnections[peerId]) {
-        mpConnections[peerId].send({ type: 'startGame', seed: window.mpWorldSeed || 0 });
+        mpConnections[peerId].send({ type: 'startGame' });
       }
     } else if (data.type === 'pos') {
       if (mpPlayers[peerId]) {
-        Object.assign(mpPlayers[peerId], { x: data.x, y: data.y, dir: data.dir, item: data.item, headAngle: data.headAngle, swingAngle: data.swingAngle });
+        Object.assign(mpPlayers[peerId], { x: data.x, y: data.y, dir: data.dir, item: data.item, headAngle: data.headAngle, swingAngle: data.swingAngle, name: data.name || mpPlayers[peerId].name });
       }
       broadcastExcept(peerId, Object.assign({ type: 'pos', peerId: peerId }, data));
       // Also update remote players for host's render
       window.mpRemotePlayers[peerId] = {
-        name: mpPlayers[peerId] ? mpPlayers[peerId].name : '?',
+        name: data.name || (mpPlayers[peerId] ? mpPlayers[peerId].name : '?'),
         x: data.x, y: data.y, dir: data.dir, item: data.item,
         headAngle: data.headAngle || 0, swingAngle: data.swingAngle || 0,
         ts: Date.now()
       };
+    } else if (data.type === 'blockChange') {
+      // Klijent je promijenio blok (postavio/razbio) — primijeni lokalno na hostu
+      // i proslijedi promjenu svim ostalim spojenim igračima.
+      applyRemoteBlockChange(data.x, data.y, data.bg, data.v);
+      broadcastExcept(peerId, data);
     }
   }
 
@@ -4670,7 +4701,7 @@ window.addEventListener("load", function() {
       (data.players || []).forEach(function(p) { if (p && p.peerId) mpPlayers[p.peerId] = p; });
       mpPlayers['__host__'] = { name: data.hostName || 'Host', isHost: true };
       renderPlayerList();
-      if (data.gameStarted) { hideLobbyUIOnly(); startMultiGame(data.seed || 0); }
+      if (data.gameStarted) { hideLobbyUIOnly(); startMultiGame(12345); }
     } else if (data.type === 'existingPlayers') {
       (data.players || []).forEach(function(p) { if (p && p.peerId) mpPlayers[p.peerId] = p; });
       renderPlayerList();
@@ -4685,23 +4716,26 @@ window.addEventListener("load", function() {
       renderPlayerList();
     } else if (data.type === 'startGame') {
       hideLobbyUIOnly();
-      startMultiGame(data.seed);
+      startMultiGame(12345);
     } else if (data.type === 'pos') {
-      var pName = mpPlayers[data.peerId] ? mpPlayers[data.peerId].name : '?';
+      var pName = data.name || (mpPlayers[data.peerId] ? mpPlayers[data.peerId].name : '?');
       window.mpRemotePlayers[data.peerId] = {
         name: pName,
         x: data.x, y: data.y, dir: data.dir, item: data.item,
         headAngle: data.headAngle || 0, swingAngle: data.swingAngle || 0,
         ts: Date.now()
       };
+    } else if (data.type === 'blockChange') {
+      // Host (ili drugi igrač preko hosta) je promijenio blok — primijeni lokalno.
+      applyRemoteBlockChange(data.x, data.y, data.bg, data.v);
     }
   }
 
   window.multiStartGame = function() {
     if (mpRole !== 'host') return;
-    var seed = Math.floor(Math.random() * 999999);
+    var seed = 12345;
     window.mpWorldSeed = seed;
-    broadcastAll({ type: 'startGame', seed: seed });
+    broadcastAll({ type: 'startGame' });
     hideLobbyUIOnly();
     startMultiGame(seed);
   };
@@ -4734,7 +4768,8 @@ window.addEventListener("load", function() {
       dir: (window.playerFacingRight !== false) ? 1 : -1,
       item: (typeof selectedBlock !== 'undefined' ? selectedBlock : 0) || 0,
       headAngle: window._mpHeadAngle || 0,
-      swingAngle: window._mpSwingAngle || 0
+      swingAngle: window._mpSwingAngle || 0,
+      name: window.playerName || 'Unnamed'
     };
     mpDebugSet('lastSent', Date.now());
     mpDebugSet('sentCount', (mpDebugState.sentCount || 0) + 1);
